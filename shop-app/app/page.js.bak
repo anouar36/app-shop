@@ -1,0 +1,533 @@
+"use client";
+import { useState, useEffect } from "react";
+import Image from "next/image";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
+
+const heroSlides = [
+  {
+    id: 1,
+    image: "/products/clothing.jpg",
+    title: "Summer Collection 2025",
+    description: "Discover the latest trends for the season",
+    buttonText: "Shop Now"
+  },
+  {
+    id: 2,
+    image: "https://images.unsplash.com/photo-1749810364373-5e2f18bb842a?q=80&w=387&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    title: "Exclusive Deals",
+    description: "Up to 50% off on selected items",
+    buttonText: "View Offers"
+  },
+  {
+    id: 3,
+    image: "/products/electronics.jpg",
+    title: "New Arrivals",
+    description: "Be the first to shop our latest products",
+    buttonText: "Explore"
+  }
+];
+
+const products = [
+  {
+    id: 1,
+    name: "Classic T-Shirt",
+    price: 29.99,
+    image: "/products/clothing.jpg",
+    description: "A comfortable cotton t-shirt for everyday wear.",
+    featured: true,
+    category: "clothing"
+  },
+  {
+    id: 2,
+    name: "Designer Jeans",
+    price: 89.99,
+    image: "/products/clothing.jpg",
+    description: "Premium quality jeans with perfect fit.",
+    featured: true,
+    category: "clothing"
+  },  {
+    id: 3,
+    name: "Casual Sneakers",
+    price: 59.99,
+    image: "/products/shoes.jpg",
+    description: "Lightweight and stylish sneakers for any occasion.",
+    featured: false,
+    category: "shoes"
+  },
+  {
+    id: 4,
+    name: "Leather Wallet",
+    price: 39.99,
+    image: "/products/accessories.jpg",
+    description: "Genuine leather wallet with multiple compartments.",
+    featured: false,
+    category: "accessories"
+  },  {
+    id: 5,
+    name: "Smartwatch Pro",
+    price: 199.99,
+    image: "/products/electronics.jpg",
+    description: "Next-generation smartwatch with health monitoring.",
+    featured: true,
+    category: "electronics"
+  },
+  {
+    id: 6,
+    name: "Wireless Headphones",
+    price: 79.99,
+    image: "/products/electronics.jpg",
+    description: "Premium sound quality with noise cancellation.",
+    featured: true,
+    category: "electronics"
+  }
+];
+
+const paymentMethods = [
+  { id: 1, name: "Credit Card", icon: "/payment/credit-card.jpg" },
+  { id: 2, name: "PayPal", icon: "/payment/paypal.jpg" },
+  { id: 3, name: "Apple Pay", icon: "/payment/apple-pay.jpg" },
+  { id: 4, name: "Google Pay", icon: "/payment/google-pay.jpg" }
+];
+
+export default function Home() {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const [activeCategory, setActiveCategory] = useState("all");
+  
+  // Handle scroll effect for the header
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 50) {
+        setScrolled(true);
+      } else {
+        setScrolled(false);
+      }
+    };
+    
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const handleAddToCart = (product) => {
+    toast.success(`${product.name} added to cart!`);
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Header with navigation */}
+      <header className={`border-b border-border sticky top-0 z-50 bg-background/95 backdrop-blur transition-all duration-300 ${scrolled ? 'shadow-sm py-2' : 'py-4'}`}>
+        <div className="container mx-auto px-4 flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-white font-bold">S</div>
+            <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-600">ShopApp</h1>
+          </div>
+          <nav className="hidden md:flex items-center gap-6">
+            <a href="/" className="text-sm font-medium hover:underline underline-offset-4 hover:text-primary transition-colors">Home</a>
+            <a href="#products-section" className="text-sm font-medium hover:underline underline-offset-4 hover:text-primary transition-colors">Products</a>
+            <a href="#" className="text-sm font-medium hover:underline underline-offset-4 hover:text-primary transition-colors">Categories</a>
+            <a href="#" className="text-sm font-medium hover:underline underline-offset-4 hover:text-primary transition-colors">Sale</a>
+            <a href="/admin" className="text-sm font-medium hover:underline underline-offset-4 hover:text-primary transition-colors">Admin</a>
+          </nav>
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" className="hidden md:flex hover:bg-primary/10 hover:text-primary transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+                <circle cx="11" cy="11" r="8"></circle>
+                <path d="m21 21-4.3-4.3"></path>
+              </svg>
+            </Button>
+            <Button variant="ghost" size="icon" className="hover:bg-primary/10 hover:text-primary transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+            </Button>
+            <a href="/checkout">
+              <Button 
+                variant="outline" 
+                size="icon" 
+                className="relative hover:border-primary hover:text-primary transition-colors hover:scale-105"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+                  <circle cx="8" cy="21" r="1"></circle>
+                  <circle cx="19" cy="21" r="1"></circle>
+                  <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"></path>
+                </svg>
+                <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 animate-pulse-slow">3</Badge>
+              </Button>
+            </a>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="md:hidden hover:bg-primary/10" 
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              {mobileMenuOpen ? (
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6">
+                  <path d="M18 6 6 18"></path>
+                  <path d="m6 6 12 12"></path>
+                </svg>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6">
+                  <path d="M4 6h16"></path>
+                  <path d="M4 12h16"></path>
+                  <path d="M4 18h16"></path>
+                </svg>
+              )}
+            </Button>
+          </div>
+        </div>
+        
+        {/* Mobile Menu */}
+        <div 
+          className={`md:hidden absolute top-full left-0 right-0 bg-background border-b border-border shadow-lg transform transition-all duration-300 ease-in-out ${
+            mobileMenuOpen ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'
+          }`}
+        >
+          <nav className="flex flex-col p-4 gap-2">
+            <a 
+              href="/" 
+              className="text-sm font-medium p-2 hover:bg-primary/10 rounded-md hover:text-primary transition-colors"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Home
+            </a>
+            <a 
+              href="#products-section" 
+              className="text-sm font-medium p-2 hover:bg-primary/10 rounded-md hover:text-primary transition-colors"
+              onClick={() => {
+                document.getElementById('products-section').scrollIntoView({ behavior: 'smooth' });
+                setMobileMenuOpen(false);
+              }}
+            >
+              Products
+            </a>
+            <a 
+              href="#" 
+              className="text-sm font-medium p-2 hover:bg-primary/10 rounded-md hover:text-primary transition-colors"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Categories
+            </a>
+            <a 
+              href="#" 
+              className="text-sm font-medium p-2 hover:bg-primary/10 rounded-md hover:text-primary transition-colors"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Sale
+            </a>
+            <a 
+              href="/admin" 
+              className="text-sm font-medium p-2 hover:bg-primary/10 rounded-md hover:text-primary transition-colors"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Admin
+            </a>
+            <div className="mt-2 pt-2 border-t border-border">
+              <Button 
+                variant="default" 
+                className="w-full bg-gradient-to-r from-primary to-purple-600 hover:opacity-90 transition-opacity"
+                onClick={() => {
+                  window.location.href = "/checkout";
+                }}
+              >
+                View Cart (3)
+              </Button>
+            </div>
+          </nav>
+        </div>
+      </header>
+      
+      <main>
+        {/* Hero Carousel Section */}
+        <section className="relative">
+          <Carousel className="w-full" autoplay={true} loop={true}>
+            <CarouselContent>
+              {heroSlides.map((slide) => (
+                <CarouselItem key={slide.id}>
+                  <div className="relative h-[50vh] md:h-[70vh] overflow-hidden">
+                    <div className="absolute inset-0 bg-gray-900/40 z-10"></div>                    <div className="w-full h-full bg-muted">
+                      <img src={slide.image} alt={slide.title} className="w-full h-full object-cover" />
+                    </div>
+                    <div className="absolute inset-0 z-20 flex flex-col items-center justify-center text-center text-white p-6">                      <h1 className="text-4xl md:text-6xl font-bold mb-4">{slide.title}</h1>
+                      <p className="text-lg md:text-xl mb-8 max-w-2xl">{slide.description}</p>
+                      <Button size="lg" className="bg-primary hover:bg-primary/90" onClick={() => document.getElementById('products-section').scrollIntoView({ behavior: 'smooth' })}>{slide.buttonText}</Button>
+                    </div>
+                  </div>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+            <CarouselPrevious className="left-4" />
+            <CarouselNext className="right-4" />
+          </Carousel>
+        </section>
+        
+        {/* Featured Categories */}
+        <section className="py-12 bg-muted/30">
+          <div className="container mx-auto px-4">
+            <h2 className="text-3xl font-bold mb-8 text-center">Shop by Category</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">              {['Clothing', 'Shoes', 'Accessories', 'Electronics'].map((category, index) => (
+                <Card key={index} className="overflow-hidden group cursor-pointer">
+                  <div className="aspect-square relative bg-muted transition-transform group-hover:scale-105 duration-300">
+                    <div className="w-full h-full flex items-center justify-center bg-muted">
+                      <div className="relative w-full h-full">
+                        <img 
+                          src={`/products/category-${category.toLowerCase()}.jpg`} 
+                          alt={`${category} category`}
+                          className="object-cover w-full h-full"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <CardContent className="p-4">
+                    <h3 className="font-semibold text-center">{category}</h3>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </section>
+          {/* Featured Products Tabs */}
+        <section id="products-section" className="py-16 container mx-auto px-4">
+          <div className="flex flex-col items-center mb-8">
+            <h2 className="text-3xl font-bold">Featured Products</h2>
+            <Separator className="my-4 w-24" />
+            <p className="text-muted-foreground text-center max-w-2xl">
+              Discover our handpicked selection of premium quality products
+            </p>
+          </div>
+          
+          <Tabs defaultValue="all" className="w-full">
+            <div className="flex justify-center mb-8">
+              <TabsList>
+                <TabsTrigger value="all">All</TabsTrigger>
+                <TabsTrigger value="clothing">Clothing</TabsTrigger>
+                <TabsTrigger value="shoes">Shoes</TabsTrigger>
+                <TabsTrigger value="electronics">Electronics</TabsTrigger>
+              </TabsList>
+            </div>
+            
+            <TabsContent value="all" className="mt-0">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {products.filter(p => p.featured).map(product => (
+                  <Card key={product.id} className="overflow-hidden group cursor-pointer transition-all duration-300 hover:shadow-lg">                    <div className="aspect-square relative bg-muted">
+                      <div className="w-full h-full">
+                        <img 
+                          src={product.image} 
+                          alt={product.name}
+                          className="object-cover w-full h-full group-hover:opacity-90 transition-opacity"
+                        />
+                      </div>
+                      <Badge className="absolute top-2 right-2 bg-primary hover:bg-primary/90">Featured</Badge>
+                    </div>
+                    <CardHeader className="p-4 pb-0">
+                      <div className="flex justify-between items-start">
+                        <CardTitle className="text-lg">{product.name}</CardTitle>
+                        <div className="text-lg font-bold">${product.price.toFixed(2)}</div>
+                      </div>
+                      <CardDescription className="line-clamp-2 mt-2">{product.description}</CardDescription>
+                    </CardHeader>
+                    <CardFooter className="p-4 pt-2">
+                      <Button className="w-full bg-primary/90 hover:bg-primary group">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 mr-2 group-hover:animate-bounce">
+                          <circle cx="8" cy="21" r="1"></circle>
+                          <circle cx="19" cy="21" r="1"></circle>
+                          <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"></path>
+                        </svg>
+                        Add to Cart
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                ))}
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="clothing" className="mt-0">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {products.filter(p => p.category === 'clothing').map(product => (
+                  <Card key={product.id} className="overflow-hidden group cursor-pointer transition-all duration-300 hover:shadow-lg">
+                    <div className="aspect-square relative bg-muted">
+                      <div className="w-full h-full flex items-center justify-center bg-muted text-muted-foreground group-hover:opacity-90 transition-opacity">
+                        Product Image
+                      </div>
+                      {product.featured && (
+                        <Badge className="absolute top-2 right-2 bg-primary hover:bg-primary/90">Featured</Badge>
+                      )}
+                    </div>
+                    <CardHeader className="p-4 pb-0">
+                      <div className="flex justify-between items-start">
+                        <CardTitle className="text-lg">{product.name}</CardTitle>
+                        <div className="text-lg font-bold">${product.price.toFixed(2)}</div>
+                      </div>
+                      <CardDescription className="line-clamp-2 mt-2">{product.description}</CardDescription>
+                    </CardHeader>
+                    <CardFooter className="p-4 pt-2">
+                      <Button className="w-full bg-primary/90 hover:bg-primary group">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 mr-2 group-hover:animate-bounce">
+                          <circle cx="8" cy="21" r="1"></circle>
+                          <circle cx="19" cy="21" r="1"></circle>
+                          <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"></path>
+                        </svg>
+                        Add to Cart
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                ))}
+              </div>
+            </TabsContent>
+            
+            {/* Similar structure for shoes and electronics tabs */}
+            <TabsContent value="shoes" className="mt-0">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {products.filter(p => p.category === 'shoes').map(product => (
+                  <Card key={product.id} className="overflow-hidden group cursor-pointer transition-all duration-300 hover:shadow-lg">
+                    {/* Product card content */}
+                    <div className="aspect-square relative bg-muted">
+                      <div className="w-full h-full flex items-center justify-center bg-muted text-muted-foreground group-hover:opacity-90 transition-opacity">
+                        Product Image
+                      </div>
+                    </div>
+                    <CardHeader className="p-4 pb-0">
+                      <div className="flex justify-between items-start">
+                        <CardTitle className="text-lg">{product.name}</CardTitle>
+                        <div className="text-lg font-bold">${product.price.toFixed(2)}</div>
+                      </div>
+                      <CardDescription className="line-clamp-2 mt-2">{product.description}</CardDescription>
+                    </CardHeader>
+                    <CardFooter className="p-4 pt-2">
+                      <Button className="w-full bg-primary/90 hover:bg-primary">Add to Cart</Button>
+                    </CardFooter>
+                  </Card>
+                ))}
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="electronics" className="mt-0">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {products.filter(p => p.category === 'electronics').map(product => (
+                  <Card key={product.id} className="overflow-hidden group cursor-pointer transition-all duration-300 hover:shadow-lg">
+                    {/* Product card content */}
+                    <div className="aspect-square relative bg-muted">
+                      <div className="w-full h-full flex items-center justify-center bg-muted text-muted-foreground group-hover:opacity-90 transition-opacity">
+                        Product Image
+                      </div>
+                    </div>
+                    <CardHeader className="p-4 pb-0">
+                      <div className="flex justify-between items-start">
+                        <CardTitle className="text-lg">{product.name}</CardTitle>
+                        <div className="text-lg font-bold">${product.price.toFixed(2)}</div>
+                      </div>
+                      <CardDescription className="line-clamp-2 mt-2">{product.description}</CardDescription>
+                    </CardHeader>
+                    <CardFooter className="p-4 pt-2">
+                      <Button className="w-full bg-primary/90 hover:bg-primary">Add to Cart</Button>
+                    </CardFooter>
+                  </Card>
+                ))}
+              </div>
+            </TabsContent>
+          </Tabs>
+        </section>
+        
+        {/* Special Offers Banner */}
+        <section className="py-12 bg-primary/10">
+          <div className="container mx-auto px-4">
+            <div className="rounded-xl bg-gradient-to-r from-primary/80 to-primary p-6 md:p-12 text-white overflow-hidden relative">              <div className="max-w-lg">
+                <h2 className="text-3xl md:text-4xl font-bold mb-4">Summer Sale Is Live!</h2>
+                <p className="text-lg mb-6">Enjoy up to 50% off on selected summer products. Limited time offer.</p>
+                <Button variant="secondary" size="lg" className="text-primary" onClick={() => document.getElementById('products-section').scrollIntoView({ behavior: 'smooth' })}>Shop the Sale</Button>
+              </div>
+              <div className="hidden md:block absolute -bottom-10 right-10 w-64 h-64 rounded-full bg-white/20"></div>
+              <div className="hidden md:block absolute -top-10 right-40 w-32 h-32 rounded-full bg-white/10"></div>
+            </div>
+          </div>
+        </section>
+        
+        {/* Payment Methods Section */}
+        <section className="py-12 bg-muted/20">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-8">
+              <h2 className="text-2xl font-bold">Secure Payment Methods</h2>
+              <p className="text-muted-foreground mt-2">We offer multiple payment options for your convenience</p>
+            </div>
+            
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-3xl mx-auto">
+              {paymentMethods.map(method => (
+                <Card key={method.id} className="bg-background hover:shadow-md transition-shadow">
+                  <CardContent className="flex flex-col items-center justify-center p-4">                    <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4 overflow-hidden">
+                      <img src={method.icon} alt={`${method.name} icon`} className="w-full h-full object-cover" />
+                    </div>
+                    <p className="font-medium text-sm">{method.name}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+            
+            <div className="mt-8 text-center">
+              <p className="text-sm text-muted-foreground">All transactions are secure and encrypted</p>
+            </div>
+          </div>
+        </section>
+        
+        {/* Newsletter Subscription */}
+        <section className="py-16 container mx-auto px-4">
+          <div className="max-w-3xl mx-auto text-center">
+            <h2 className="text-3xl font-bold mb-4">Stay Updated</h2>
+            <p className="text-muted-foreground mb-8">Subscribe to our newsletter to receive updates and exclusive offers</p>
+            <div className="flex flex-col sm:flex-row gap-2 items-center justify-center">
+              <input type="email" placeholder="Enter your email" className="flex h-10 w-full sm:w-80 rounded-md border border-input bg-background px-3 py-2 text-sm" />
+              <Button>Subscribe</Button>
+            </div>
+          </div>
+        </section>
+      </main>
+      
+      {/* Footer */}
+      <footer className="border-t border-border bg-muted/20">
+        <div className="container mx-auto px-4 py-12">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div>
+              <h3 className="font-bold text-lg mb-4">ShopApp</h3>
+              <p className="text-muted-foreground text-sm mb-4">Your one-stop shop for fashion, electronics, and more.</p>
+              <div className="flex items-center gap-4">
+                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+                    <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path>
+                  </svg>
+                </Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+                    <rect width="20" height="20" x="2" y="2" rx="5"></rect>
+                    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                    <path d="M17.5 6.5h.01"></path>
+                  </svg>
+                </Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+                    <path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"></path>
+                  </svg>
+                </Button>
+              </div>
+            </div>
+            <div>
+              <h3 className="font-bold mb-4">Shop</h3>
+              <ul className="space-y-2">
+                <li><a href="#" className="text-sm hover:underline text-muted-foreground">All Products</a></li>
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+            <p className="text-sm text-muted-foreground">© 2025 ShopApp. All rights reserved.</p>
+            <div className="flex items-center gap-4">
+              <a href="#" className="text-xs text-muted-foreground hover:underline">Privacy Policy</a>
+              <a href="#" className="text-xs text-muted-foreground hover:underline">Terms of Service</a>
+              <a href="#" className="text-xs text-muted-foreground hover:underline">Cookie Policy</a>
+            </div>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}
