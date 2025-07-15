@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Notification Test - Order System</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .success {
+            color: #155724;
+            background: #d4edda;
+            padding: 15px;
+            border-radius: 4px;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            color: #721c24;
+            background: #f8d7da;
+            padding: 15px;
+            border-radius: 4px;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            color: #0c5460;
+            background: #d1ecf1;
+            padding: 15px;
+            border-radius: 4px;
+            border: 1px solid #bee5eb;
+        }
+        .warning {
+            color: #856404;
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 4px;
+            border: 1px solid #ffeaa7;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .test-button {
+            background: #28a745;
+        }
+        .test-button:hover {
+            background: #1e7e34;
+        }
+        .email-button {
+            background: #6f42c1;
+        }
+        .email-button:hover {
+            background: #5a32a3;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            overflow: auto;
+            border: 1px solid #dee2e6;
+            white-space: pre-wrap;
+        }
+        .config-section {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .step {
+            margin: 20px 0;
+            padding: 15px;
+            border-left: 4px solid #007bff;
+            background: #f8f9fa;
+        }
+        .email-preview {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>📧 Email Notification System - Test & Configuration</h1>
+    
+    <div class="success">
+        <strong>✅ Email Notification System Implemented!</strong><br>
+        When a customer places an order, an automatic email notification will be sent to the admin.
+    </div>
+
+    <div class="container">
+        <h2>🎯 Features Implemented</h2>
+        <ul>
+            <li>✅ <strong>Automatic email notifications</strong> when orders are created</li>
+            <li>✅ <strong>Detailed order information</strong> in email (customer, product, payment)</li>
+            <li>✅ <strong>Guest vs Authenticated</strong> customer identification</li>
+            <li>✅ <strong>Error handling</strong> - email failures don't break order creation</li>
+            <li>✅ <strong>Configurable admin email</strong> address</li>
+            <li>✅ <strong>Professional email template</strong> with branding</li>
+        </ul>
+    </div>
+
+    <div class="container">
+        <h2>⚙️ Current Configuration</h2>
+        
+        <div class="config-section">
+            <h3>📧 Email Settings (.env)</h3>
+            <pre>MAIL_MAILER=log
+MAIL_FROM_ADDRESS="hello@example.com"
+MAIL_FROM_NAME="Laravel"
+MAIL_ADMIN_EMAIL=admin@ayoube.ma</pre>
+            
+            <div class="warning">
+                <strong>⚠️ Currently using LOG driver</strong><br>
+                Emails are being logged to <code>storage/logs/laravel.log</code> instead of being sent.<br>
+                To actually send emails, configure SMTP settings below.
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>🧪 Test Email Notifications</h2>
+        
+        <div class="step">
+            <h3>Step 1: Test Order Creation (Will Trigger Email)</h3>
+            <button class="test-button" onclick="createTestOrder()">🛍️ Create Test Order</button>
+            <div id="orderResult"></div>
+        </div>
+
+        <div class="step">
+            <h3>Step 2: Check Email Log</h3>
+            <button class="email-button" onclick="checkEmailLog()">📧 Check Email Log</button>
+            <div id="emailLogResult"></div>
+        </div>
+
+        <div class="step">
+            <h3>Step 3: Test Different Order Types</h3>
+            <button class="test-button" onclick="createGuestOrder()">👤 Guest Order (COD)</button>
+            <button class="test-button" onclick="createOnlineOrder()">💳 Online Payment Order</button>
+            <div id="multiTestResult"></div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>📧 Email Template Preview</h2>
+        
+        <div class="email-preview">
+            <h3>🛍️ New Order Received - #ORD-0123</h3>
+            <p><strong>Dear Admin,</strong></p>
+            <p>A new order has been placed on your e-commerce platform. Here are the details:</p>
+            
+            <h4>📋 Order Information</h4>
+            <ul>
+                <li><strong>Order Number:</strong> #ORD-0123</li>
+                <li><strong>Order Date:</strong> Jul 11, 2025 15:53</li>
+                <li><strong>Customer Type:</strong> Guest</li>
+                <li><strong>Payment Method:</strong> Cod (Cash on Delivery)</li>
+                <li><strong>Payment Status:</strong> Pending</li>
+            </ul>
+            
+            <h4>👤 Customer Details</h4>
+            <ul>
+                <li><strong>Name:</strong> JHCSX QLSKJC</li>
+                <li><strong>Email:</strong> jhcsx@example.com</li>
+                <li><strong>Phone:</strong> +1234567890</li>
+            </ul>
+            
+            <p><em>... and more details ...</em></p>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>🔧 SMTP Configuration (For Real Emails)</h2>
+        
+        <div class="config-section">
+            <h3>📧 Gmail SMTP Example</h3>
+            <pre>MAIL_MAILER=smtp
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USERNAME=your-email@gmail.com
+MAIL_PASSWORD=your-app-password
+MAIL_ENCRYPTION=tls
+MAIL_FROM_ADDRESS="your-email@gmail.com"
+MAIL_FROM_NAME="Your Store Name"
+MAIL_ADMIN_EMAIL=admin@ayoube.ma</pre>
+        </div>
+
+        <div class="config-section">
+            <h3>📧 Mailtrap (Testing) Example</h3>
+            <pre>MAIL_MAILER=smtp
+MAIL_HOST=smtp.mailtrap.io
+MAIL_PORT=2525
+MAIL_USERNAME=your-mailtrap-username
+MAIL_PASSWORD=your-mailtrap-password
+MAIL_FROM_ADDRESS="test@example.com"
+MAIL_FROM_NAME="Test Store"
+MAIL_ADMIN_EMAIL=admin@ayoube.ma</pre>
+        </div>
+
+        <div class="info">
+            <strong>💡 Tip:</strong> Use Mailtrap.io for testing emails safely without sending real emails.
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>📝 How It Works</h2>
+        
+        <div class="step">
+            <h3>1. Order Creation</h3>
+            <p>When a customer places an order via <code>POST /api/orders</code></p>
+        </div>
+
+        <div class="step">
+            <h3>2. Email Trigger</h3>
+            <p>After successful order creation, the system automatically:</p>
+            <ul>
+                <li>Creates an <code>OrderNotification</code> email</li>
+                <li>Sends it to the admin email address</li>
+                <li>Logs the email activity</li>
+            </ul>
+        </div>
+
+        <div class="step">
+            <h3>3. Error Handling</h3>
+            <p>If email sending fails:</p>
+            <ul>
+                <li>The order is still created successfully</li>
+                <li>Error is logged for debugging</li>
+                <li>Customer receives normal order response</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        const baseUrl = 'http://localhost:8000/api';
+        
+        async function createTestOrder() {
+            const orderData = {
+                "products_id": 2,
+                "client_name": "Test",
+                "client_lastname": "Customer",
+                "email": "test.customer@example.com",
+                "phone": "+1234567890",
+                "method_payment": "Cash on Delivery",
+                "payment_method": "cod"
+            };
+            
+            try {
+                const response = await fetch(`${baseUrl}/orders`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(orderData)
+                });
+                
+                const result = await response.json();
+                
+                const resultClass = response.ok ? 'success' : 'error';
+                document.getElementById('orderResult').innerHTML = `
+                    <div class="${resultClass}">
+                        <strong>${response.ok ? '✅ SUCCESS' : '❌ ERROR'} - Order Created</strong><br>
+                        ${response.ok ? '📧 Email notification should be sent to admin!' : ''}<br>
+                        <strong>Response:</strong>
+                        <pre>${JSON.stringify(result, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                document.getElementById('orderResult').innerHTML = `
+                    <div class="error">❌ Network Error: ${error.message}</div>
+                `;
+            }
+        }
+
+        async function createGuestOrder() {
+            const orderData = {
+                "products_id": 2,
+                "client_name": "Guest",
+                "client_lastname": "Shopper",
+                "email": "guest@example.com",
+                "phone": "+1234567891",
+                "method_payment": "Cash on Delivery",
+                "payment_method": "cod"
+            };
+            
+            await testOrder(orderData, 'Guest COD Order');
+        }
+
+        async function createOnlineOrder() {
+            const orderData = {
+                "products_id": 2,
+                "client_name": "Online",
+                "client_lastname": "Buyer",
+                "email": "online@example.com",
+                "phone": "+1234567892",
+                "method_payment": "PayPal",
+                "payment_method": "online"
+            };
+            
+            await testOrder(orderData, 'Online Payment Order');
+        }
+
+        async function testOrder(data, testName) {
+            try {
+                const response = await fetch(`${baseUrl}/orders`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                const resultClass = response.ok ? 'success' : 'error';
+                const currentResult = document.getElementById('multiTestResult').innerHTML || '';
+                document.getElementById('multiTestResult').innerHTML = currentResult + `
+                    <div class="${resultClass}">
+                        <strong>${response.ok ? '✅' : '❌'} ${testName}</strong><br>
+                        ${response.ok ? '📧 Admin email notification sent!' : ''}<br>
+                        Order ID: ${result.data?.order_id || 'N/A'}<br>
+                    </div>
+                `;
+            } catch (error) {
+                document.getElementById('multiTestResult').innerHTML += `
+                    <div class="error">❌ ${testName} failed: ${error.message}</div>
+                `;
+            }
+        }
+
+        function checkEmailLog() {
+            document.getElementById('emailLogResult').innerHTML = `
+                <div class="info">
+                    <strong>📧 Email Log Location</strong><br>
+                    Check the Laravel log file for email notifications:<br>
+                    <code>c:\\xampp\\htdocs\\shop\\shop-backend\\storage\\logs\\laravel.log</code><br><br>
+                    
+                    <strong>🔍 Look for:</strong><br>
+                    - "Order notification email sent to admin"<br>
+                    - Email content with order details<br><br>
+                    
+                    <strong>💡 To view logs in real-time:</strong><br>
+                    <code>Get-Content "c:\\xampp\\htdocs\\shop\\shop-backend\\storage\\logs\\laravel.log" -Wait -Tail 10</code>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>

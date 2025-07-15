@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Order API Request</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .debug-button {
+            background: #17a2b8;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            overflow: auto;
+            max-height: 400px;
+            border: 1px solid #e9ecef;
+            white-space: pre-wrap;
+        }
+        .error {
+            color: #dc3545;
+            background: #f8d7da;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #f5c6cb;
+        }
+        .success {
+            color: #155724;
+            background: #d4edda;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #c3e6cb;
+        }
+        .info {
+            color: #0c5460;
+            background: #d1ecf1;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #bee5eb;
+        }
+        .request-data {
+            background: #e2e3e5;
+            border: 1px solid #d6d8db;
+        }
+        .step {
+            margin: 20px 0;
+            padding: 15px;
+            border-left: 4px solid #007bff;
+            background: white;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Debug Order API Request</h1>
+    
+    <div class="info">
+        <strong>Issue:</strong> Request contains all required fields but Laravel returns validation errors.
+        <br><strong>Goal:</strong> Debug what's happening with the request data.
+    </div>
+
+    <div class="step">
+        <h3>Step 1: Check Backend Status</h3>
+        <button onclick="checkBackend()">Check Backend</button>
+        <div id="backendResult"></div>
+    </div>
+
+    <div class="step">
+        <h3>Step 2: Test Simple API</h3>
+        <button onclick="testSimpleAPI()">Test /api/test</button>
+        <div id="simpleResult"></div>
+    </div>
+
+    <div class="step">
+        <h3>Step 3: Debug Request Headers</h3>
+        <button class="debug-button" onclick="debugHeaders()">Test Headers</button>
+        <div id="headersResult"></div>
+    </div>
+
+    <div class="step">
+        <h3>Step 4: Test Exact Request (Your Data)</h3>
+        <div class="request-data">
+            <h4>Request Data:</h4>
+            <pre id="requestData"></pre>
+        </div>
+        <button onclick="testExactRequest()">Send Exact Request</button>
+        <div id="exactResult"></div>
+    </div>
+
+    <div class="step">
+        <h3>Step 5: Test with Form Data</h3>
+        <button onclick="testFormData()">Test Form Data</button>
+        <div id="formResult"></div>
+    </div>
+
+    <div class="step">
+        <h3>Step 6: Check Laravel Logs</h3>
+        <button class="debug-button" onclick="checkLogs()">Check Debug Logs</button>
+        <div id="logsResult"></div>
+    </div>
+
+    <script>
+        const baseUrl = 'http://localhost:8000/api';
+        
+        // Your exact request data
+        const requestData = {
+            "products_id": 2,
+            "client_name": "JHCSX",
+            "client_lastname": "QLSKJC",
+            "email": "jhcsx@example.com",
+            "phone": "+1234567890",
+            "method_payment": "Cash on Delivery",
+            "payment_method": "cod"
+        };
+
+        window.onload = function() {
+            document.getElementById('requestData').textContent = JSON.stringify(requestData, null, 2);
+        };
+
+        async function checkBackend() {
+            try {
+                const response = await fetch(`${baseUrl}/test`);
+                const data = await response.json();
+                document.getElementById('backendResult').innerHTML = `
+                    <div class="success">✅ Backend is running: ${JSON.stringify(data)}</div>
+                `;
+            } catch (error) {
+                document.getElementById('backendResult').innerHTML = `
+                    <div class="error">❌ Backend not accessible: ${error.message}</div>
+                `;
+            }
+        }
+
+        async function testSimpleAPI() {
+            try {
+                const response = await fetch(`${baseUrl}/test`);
+                const data = await response.json();
+                document.getElementById('simpleResult').innerHTML = `
+                    <div class="success">
+                        <strong>✅ Simple API works</strong><br>
+                        Status: ${response.status}<br>
+                        Response: <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                document.getElementById('simpleResult').innerHTML = `
+                    <div class="error">❌ Simple API failed: ${error.message}</div>
+                `;
+            }
+        }
+
+        async function debugHeaders() {
+            try {
+                const response = await fetch(`${baseUrl}/orders`, {
+                    method: 'OPTIONS',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                document.getElementById('headersResult').innerHTML = `
+                    <div class="info">
+                        <strong>OPTIONS Response:</strong><br>
+                        Status: ${response.status}<br>
+                        Headers: <pre>${JSON.stringify(Object.fromEntries(response.headers), null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                document.getElementById('headersResult').innerHTML = `
+                    <div class="error">❌ Headers test failed: ${error.message}</div>
+                `;
+            }
+        }
+
+        async function testExactRequest() {
+            try {
+                console.log('Sending request:', requestData);
+                
+                const response = await fetch(`${baseUrl}/orders`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(requestData)
+                });
+                
+                const responseText = await response.text();
+                console.log('Raw response:', responseText);
+                
+                let data;
+                try {
+                    data = JSON.parse(responseText);
+                } catch (e) {
+                    data = { raw_response: responseText };
+                }
+                
+                const resultClass = response.ok ? 'success' : 'error';
+                document.getElementById('exactResult').innerHTML = `
+                    <div class="${resultClass}">
+                        <strong>${response.ok ? '✅' : '❌'} Response:</strong><br>
+                        Status: ${response.status} ${response.statusText}<br>
+                        Content-Type: ${response.headers.get('content-type')}<br>
+                        <strong>Response Data:</strong>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                document.getElementById('exactResult').innerHTML = `
+                    <div class="error">❌ Request failed: ${error.message}</div>
+                `;
+            }
+        }
+
+        async function testFormData() {
+            try {
+                const formData = new FormData();
+                Object.keys(requestData).forEach(key => {
+                    formData.append(key, requestData[key]);
+                });
+                
+                const response = await fetch(`${baseUrl}/orders`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                const resultClass = response.ok ? 'success' : 'error';
+                
+                document.getElementById('formResult').innerHTML = `
+                    <div class="${resultClass}">
+                        <strong>${response.ok ? '✅' : '❌'} Form Data Test:</strong><br>
+                        Status: ${response.status}<br>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                document.getElementById('formResult').innerHTML = `
+                    <div class="error">❌ Form data test failed: ${error.message}</div>
+                `;
+            }
+        }
+
+        async function checkLogs() {
+            document.getElementById('logsResult').innerHTML = `
+                <div class="info">
+                    <strong>📝 Debug Information Added to Controller</strong><br>
+                    Check Laravel logs at: <code>shop-backend/storage/logs/laravel.log</code><br>
+                    Or run: <code>tail -f storage/logs/laravel.log</code><br>
+                    After making a request, the logs will show what data Laravel actually receives.
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>

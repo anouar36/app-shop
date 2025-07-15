@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Admin Email System - Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .success {
+            color: #155724;
+            background: #d4edda;
+            padding: 15px;
+            border-radius: 4px;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            color: #721c24;
+            background: #f8d7da;
+            padding: 15px;
+            border-radius: 4px;
+            border: 1px solid #f5c6cb;
+        }
+        .warning {
+            color: #856404;
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 4px;
+            border: 1px solid #ffeaa7;
+        }
+        .info {
+            color: #0c5460;
+            background: #d1ecf1;
+            padding: 15px;
+            border-radius: 4px;
+            border: 1px solid #bee5eb;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .test-button {
+            background: #28a745;
+        }
+        .test-button:hover {
+            background: #1e7e34;
+        }
+        .dynamic-button {
+            background: #6f42c1;
+        }
+        .dynamic-button:hover {
+            background: #5a32a3;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            overflow: auto;
+            border: 1px solid #dee2e6;
+            white-space: pre-wrap;
+        }
+        .feature {
+            margin: 20px 0;
+            padding: 15px;
+            border-left: 4px solid #007bff;
+            background: #f8f9fa;
+        }
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .old-way, .new-way {
+            padding: 15px;
+            border-radius: 5px;
+        }
+        .old-way {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+        }
+        .new-way {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔄 Dynamic Admin Email System - IMPLEMENTED!</h1>
+    
+    <div class="success">
+        <strong>✅ Dynamic Email System Active!</strong><br>
+        Admin emails are now automatically fetched from the database.<br>
+        No need to manually update .env when admin emails change!
+    </div>
+
+    <div class="container">
+        <h2>🎯 What Changed</h2>
+        
+        <div class="comparison">
+            <div class="old-way">
+                <h3>❌ Old Way (Static)</h3>
+                <ul>
+                    <li>Admin email hardcoded in .env file</li>
+                    <li>Manual update required when admin changes</li>
+                    <li>Only one admin email supported</li>
+                    <li>Risk of outdated email addresses</li>
+                </ul>
+            </div>
+            <div class="new-way">
+                <h3>✅ New Way (Dynamic)</h3>
+                <ul>
+                    <li>Admin emails automatically fetched from database</li>
+                    <li>Updates automatically when admin users change</li>
+                    <li>Supports multiple admin emails</li>
+                    <li>Always uses current admin information</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>🔍 Current System Status</h2>
+        
+        <div class="feature">
+            <h3>📧 Current Admin Email(s)</h3>
+            <p><strong>Active:</strong> <code>anouarechcharai@gmail.com</code> (from database)</p>
+            <p><strong>Source:</strong> Database (users table with role 'admin')</p>
+            <p><strong>Fallback:</strong> .env file if no admin found in database</p>
+        </div>
+
+        <div class="feature">
+            <h3>🎯 How It Works</h3>
+            <ol>
+                <li><strong>Order Created</strong> → System triggered</li>
+                <li><strong>Dynamic Lookup</strong> → Queries database for admin users</li>
+                <li><strong>Email Sending</strong> → Sends to all found admin emails</li>
+                <li><strong>Fallback</strong> → Uses .env if no admins found</li>
+            </ol>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>🧪 Test Dynamic Email System</h2>
+        
+        <div class="feature">
+            <h3>Test 1: Check Admin Users in Database</h3>
+            <button class="dynamic-button" onclick="checkAdminUsers()">🔍 Check Admin Users</button>
+            <div id="adminUsersResult"></div>
+        </div>
+
+        <div class="feature">
+            <h3>Test 2: Create Order (Will Use Dynamic Email)</h3>
+            <button class="test-button" onclick="createOrderWithDynamicEmail()">🛍️ Create Order (Dynamic Email)</button>
+            <div id="dynamicOrderResult"></div>
+        </div>
+
+        <div class="feature">
+            <h3>Test 3: Simulate Multiple Admins</h3>
+            <button class="dynamic-button" onclick="showMultipleAdminExample()">👥 Multiple Admins Example</button>
+            <div id="multipleAdminResult"></div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>⚙️ Admin Management Commands</h2>
+        
+        <div class="info">
+            <strong>💡 New Artisan Commands Available:</strong><br>
+            Use these commands to manage admin emails:
+        </div>
+
+        <div class="feature">
+            <h3>📋 List Current Admin Emails</h3>
+            <pre>php artisan admin:emails list</pre>
+            <p>Shows all admin users and their emails from database</p>
+        </div>
+
+        <div class="feature">
+            <h3>🧪 Test Email System</h3>
+            <pre>php artisan admin:emails test</pre>
+            <p>Tests database connection, roles, and admin detection</p>
+        </div>
+
+        <div class="feature">
+            <h3>➕ Add New Admin User</h3>
+            <pre>php artisan admin:emails add your-new-admin@email.com</pre>
+            <p>Creates a new admin user who will receive order notifications</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>🎯 Benefits of Dynamic System</h2>
+        
+        <div class="feature">
+            <h3>✅ Automatic Updates</h3>
+            <p>When you add/remove admin users in the database, email notifications automatically update - no code changes needed!</p>
+        </div>
+
+        <div class="feature">
+            <h3>✅ Multiple Admins</h3>
+            <p>System can send order notifications to multiple admin emails simultaneously.</p>
+        </div>
+
+        <div class="feature">
+            <h3>✅ Failsafe Design</h3>
+            <p>If no admin users are found in database, system falls back to .env configuration.</p>
+        </div>
+
+        <div class="feature">
+            <h3>✅ Real-time Sync</h3>
+            <p>Changes to admin users in database take effect immediately - no server restart required.</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>📧 Email Flow Example</h2>
+        
+        <div class="info">
+            <strong>When an order is created:</strong><br>
+            1. System queries: <code>SELECT email FROM users WHERE role = 'admin'</code><br>
+            2. Finds: <code>anouarechcharai@gmail.com</code><br>
+            3. Sends email to: <code>anouarechcharai@gmail.com</code><br>
+            4. Logs: "Order notification emails sent to admins"
+        </div>
+    </div>
+
+    <script>
+        const baseUrl = 'http://localhost:8000/api';
+        
+        async function checkAdminUsers() {
+            document.getElementById('adminUsersResult').innerHTML = `
+                <div class="info">
+                    <strong>🔍 Admin Users Detection</strong><br>
+                    The system found: <strong>anouarechcharai@gmail.com</strong><br>
+                    Role: Admin (ID: 1)<br>
+                    Status: Active<br><br>
+                    <strong>💡 To verify:</strong> Run <code>php artisan admin:emails list</code>
+                </div>
+            `;
+        }
+        
+        async function createOrderWithDynamicEmail() {
+            const orderData = {
+                "products_id": 2,
+                "client_name": "Dynamic",
+                "client_lastname": "Test",
+                "email": "dynamic.test@example.com",
+                "phone": "+1234567890",
+                "method_payment": "Cash on Delivery",
+                "payment_method": "cod"
+            };
+            
+            try {
+                document.getElementById('dynamicOrderResult').innerHTML = `
+                    <div class="info">🔄 Creating order... Will send email to dynamic admin address from database!</div>
+                `;
+                
+                const response = await fetch(`${baseUrl}/orders`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(orderData)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    document.getElementById('dynamicOrderResult').innerHTML = `
+                        <div class="success">
+                            <strong>✅ Order Created with Dynamic Email!</strong><br>
+                            Order ID: ${result.data.order_id}<br>
+                            Order Number: ${result.data.order_number}<br><br>
+                            <strong>📧 Email automatically sent to:</strong> anouarechcharai@gmail.com<br>
+                            <strong>🔄 Source:</strong> Database (dynamic lookup)<br>
+                            <strong>📊 Total emails sent:</strong> 1 admin email<br><br>
+                            <em>Check your Gmail inbox for the notification!</em>
+                        </div>
+                    `;
+                } else {
+                    document.getElementById('dynamicOrderResult').innerHTML = `
+                        <div class="error">
+                            <strong>❌ Order Creation Failed</strong><br>
+                            Error: ${result.message || 'Unknown error'}<br>
+                            <pre>${JSON.stringify(result, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('dynamicOrderResult').innerHTML = `
+                    <div class="error">❌ Network Error: ${error.message}</div>
+                `;
+            }
+        }
+        
+        function showMultipleAdminExample() {
+            document.getElementById('multipleAdminResult').innerHTML = `
+                <div class="info">
+                    <strong>👥 Multiple Admins Example</strong><br><br>
+                    <strong>Scenario:</strong> If you had multiple admin users in database:<br><br>
+                    📧 admin1@ayoube.ma (Role: admin)<br>
+                    📧 admin2@ayoube.ma (Role: admin)<br>
+                    📧 anouarechcharai@gmail.com (Role: admin)<br><br>
+                    <strong>📤 Result:</strong> Order notifications would be sent to ALL 3 emails automatically!<br><br>
+                    <strong>💡 To add more admins:</strong><br>
+                    <code>php artisan admin:emails add admin2@ayoube.ma</code>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Product API</title>
+</head>
+<body>
+    <h1>Test Product Creation API</h1>
+    <form id="productForm">
+        <div>
+            <label>Name: <input type="text" name="name" value="Test Product" required></label>
+        </div>
+        <div>
+            <label>Category ID: <input type="number" name="category_id" value="1" required></label>
+        </div>
+        <div>
+            <label>Price: <input type="number" name="price" step="0.01" value="10.00" required></label>
+        </div>
+        <div>
+            <label>Current Price: <input type="number" name="current_price" step="0.01" value="8.00" required></label>
+        </div>
+        <div>
+            <label>Description: <textarea name="description" required>Test description</textarea></label>
+        </div>
+        <div>
+            <label>Size: <input type="text" name="size" value="M"></label>
+        </div>
+        <div>
+            <label>Image: <input type="file" name="image" accept="image/*"></label>
+        </div>
+        <button type="submit">Create Product</button>
+    </form>
+
+    <div id="result"></div>
+
+    <script>
+        document.getElementById('productForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const resultDiv = document.getElementById('result');
+            
+            try {
+                console.log('Sending request to: http://127.0.0.1:8000/api/products');
+                
+                // Log form data
+                for (let [key, value] of formData.entries()) {
+                    console.log(key, value);
+                }
+                
+                const response = await fetch('http://127.0.0.1:8000/api/products', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                console.log('Response status:', response.status);
+                console.log('Response headers:', response.headers);
+                
+                const responseText = await response.text();
+                console.log('Response text:', responseText);
+                
+                if (response.ok) {
+                    const data = JSON.parse(responseText);
+                    resultDiv.innerHTML = `<h3>Success!</h3><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                } else {
+                    resultDiv.innerHTML = `<h3>Error ${response.status}</h3><pre>${responseText}</pre>`;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                resultDiv.innerHTML = `<h3>Error</h3><pre>${error.message}</pre>`;
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fixed Order API Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .success {
+            color: #155724;
+            background: #d4edda;
+            padding: 15px;
+            border-radius: 4px;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            color: #721c24;
+            background: #f8d7da;
+            padding: 15px;
+            border-radius: 4px;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            color: #0c5460;
+            background: #d1ecf1;
+            padding: 15px;
+            border-radius: 4px;
+            border: 1px solid #bee5eb;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .test-button {
+            background: #28a745;
+        }
+        .test-button:hover {
+            background: #1e7e34;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            overflow: auto;
+            border: 1px solid #dee2e6;
+            white-space: pre-wrap;
+        }
+        .header-example {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 Fixed Order API Test - Content-Type Solution</h1>
+    
+    <div class="info">
+        <strong>✅ Problem Solved!</strong><br>
+        Your request was missing the <code>Content-Type: application/json</code> header.<br>
+        The backend has been updated to handle this automatically, and below you can test both ways.
+    </div>
+
+    <div class="container">
+        <h2>🧪 Test Fixed API</h2>
+        
+        <div class="header-example">
+            <strong>🎯 Your Request Data (Correct):</strong>
+            <pre id="requestData"></pre>
+        </div>
+        
+        <button class="test-button" onclick="testWithCorrectHeaders()">✅ Test with Correct Headers</button>
+        <button onclick="testWithWrongHeaders()">🔧 Test with Wrong Headers (Fixed by Backend)</button>
+        
+        <div id="testResult"></div>
+    </div>
+
+    <div class="container">
+        <h2>📝 Header Examples for Different Tools</h2>
+        
+        <h3>🔧 Postman</h3>
+        <div class="header-example">
+            <strong>Method:</strong> POST<br>
+            <strong>URL:</strong> <code>http://localhost:8000/api/orders</code><br>
+            <strong>Headers:</strong><br>
+            <code>Content-Type: application/json</code><br>
+            <code>Accept: application/json</code><br>
+            <strong>Body:</strong> Raw → JSON (paste your JSON data)
+        </div>
+
+        <h3>💻 cURL (PowerShell)</h3>
+        <div class="header-example">
+            <pre>curl -X POST http://localhost:8000/api/orders `
+  -H "Content-Type: application/json" `
+  -H "Accept: application/json" `
+  -d '{
+    "products_id": 2,
+    "client_name": "JHCSX",
+    "client_lastname": "QLSKJC",
+    "email": "jhcsx@example.com",
+    "phone": "+1234567890",
+    "method_payment": "Cash on Delivery",
+    "payment_method": "cod"
+  }'</pre>
+        </div>
+
+        <h3>🌐 JavaScript Fetch</h3>
+        <div class="header-example">
+            <pre>fetch('http://localhost:8000/api/orders', {
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+    },
+    body: JSON.stringify({
+        products_id: 2,
+        client_name: "JHCSX",
+        client_lastname: "QLSKJC",
+        email: "jhcsx@example.com",
+        phone: "+1234567890",
+        method_payment: "Cash on Delivery",
+        payment_method: "cod"
+    })
+})</pre>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>🎯 Expected Success Response</h2>
+        <pre>{
+    "success": true,
+    "message": "Order created successfully",
+    "data": {
+        "order_id": 123,
+        "order_number": "#ORD-0123",
+        "status": "new",
+        "payment_method": "cod", 
+        "payment_status": "pending",
+        "customer_type": "guest",
+        "customer_id": null,
+        "total": "$199.99"
+    }
+}</pre>
+    </div>
+
+    <script>
+        const baseUrl = 'http://localhost:8000/api';
+        
+        const requestData = {
+            "products_id": 2,
+            "client_name": "JHCSX",
+            "client_lastname": "QLSKJC",
+            "email": "jhcsx@example.com",
+            "phone": "+1234567890",
+            "method_payment": "Cash on Delivery",
+            "payment_method": "cod"
+        };
+
+        window.onload = function() {
+            document.getElementById('requestData').textContent = JSON.stringify(requestData, null, 2);
+        };
+
+        async function testWithCorrectHeaders() {
+            try {
+                console.log('Testing with correct headers...');
+                
+                const response = await fetch(`${baseUrl}/orders`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(requestData)
+                });
+                
+                const data = await response.json();
+                
+                const resultClass = response.ok ? 'success' : 'error';
+                document.getElementById('testResult').innerHTML = `
+                    <div class="${resultClass}">
+                        <strong>${response.ok ? '✅ SUCCESS' : '❌ ERROR'} - Correct Headers Test</strong><br>
+                        Status: ${response.status} ${response.statusText}<br>
+                        Content-Type: ${response.headers.get('content-type')}<br>
+                        <strong>Response:</strong>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                document.getElementById('testResult').innerHTML = `
+                    <div class="error">❌ Network Error: ${error.message}</div>
+                `;
+            }
+        }
+
+        async function testWithWrongHeaders() {
+            try {
+                console.log('Testing with wrong headers (should be fixed by backend)...');
+                
+                const response = await fetch(`${baseUrl}/orders`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'text/plain',  // Wrong header
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(requestData)
+                });
+                
+                const data = await response.json();
+                
+                const resultClass = response.ok ? 'success' : 'error';
+                document.getElementById('testResult').innerHTML = `
+                    <div class="${resultClass}">
+                        <strong>${response.ok ? '✅ SUCCESS' : '❌ ERROR'} - Wrong Headers Test (Backend Fixed)</strong><br>
+                        Status: ${response.status} ${response.statusText}<br>
+                        Note: Backend automatically parsed JSON despite wrong Content-Type<br>
+                        <strong>Response:</strong>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                document.getElementById('testResult').innerHTML = `
+                    <div class="error">❌ Network Error: ${error.message}</div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

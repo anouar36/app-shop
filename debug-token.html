@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Token Debug Test</title>
+</head>
+<body>
+    <h1>Admin Token Debug</h1>
+    <button onclick="testLogin()">Test Admin Login</button>
+    <button onclick="testOrders()">Test Orders API</button>
+    <button onclick="checkToken()">Check Stored Token</button>
+    <button onclick="clearToken()">Clear Token</button>
+    
+    <div id="output" style="margin-top: 20px; padding: 10px; border: 1px solid #ccc;"></div>
+
+    <script>
+        function log(message) {
+            document.getElementById('output').innerHTML += '<div>' + new Date().toLocaleTimeString() + ': ' + message + '</div>';
+        }
+
+        async function testLogin() {
+            log('Testing admin login...');
+            try {
+                const response = await fetch('http://127.0.0.1:8001/api/admin/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: 'admin@shop.com',
+                        password: 'admin123'
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    log('✅ Login successful! Token: ' + data.token.substring(0, 20) + '...');
+                    localStorage.setItem('admin_token', data.token);
+                    localStorage.setItem('admin_user', JSON.stringify(data.user));
+                    log('✅ Token stored in localStorage');
+                } else {
+                    log('❌ Login failed: ' + data.message);
+                }
+            } catch (error) {
+                log('❌ Login error: ' + error.message);
+            }
+        }
+
+        async function testOrders() {
+            log('Testing orders API...');
+            const token = localStorage.getItem('admin_token');
+            
+            if (!token) {
+                log('❌ No token found. Please login first.');
+                return;
+            }
+
+            log('Using token: ' + token.substring(0, 20) + '...');
+
+            try {
+                const response = await fetch('http://127.0.0.1:8001/api/admin/orders', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    log('✅ Orders API successful! Found ' + data.data.length + ' orders');
+                    log('Sample order: ' + JSON.stringify(data.data[0], null, 2));
+                } else {
+                    log('❌ Orders API failed with status: ' + response.status);
+                    const errorData = await response.text();
+                    log('Error response: ' + errorData);
+                }
+            } catch (error) {
+                log('❌ Orders API error: ' + error.message);
+            }
+        }
+
+        function checkToken() {
+            const token = localStorage.getItem('admin_token');
+            const user = localStorage.getItem('admin_user');
+            
+            if (token) {
+                log('✅ Token found: ' + token.substring(0, 20) + '...');
+                log('✅ User data: ' + user);
+            } else {
+                log('❌ No token found in localStorage');
+            }
+        }
+
+        function clearToken() {
+            localStorage.removeItem('admin_token');
+            localStorage.removeItem('admin_user');
+            log('🗑️ Token cleared from localStorage');
+        }
+    </script>
+</body>
+</html>

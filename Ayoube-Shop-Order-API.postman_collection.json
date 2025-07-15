@@ -1,0 +1,216 @@
+{
+  "info": {
+    "name": "Ayoube Shop - Order API with Email Notifications",
+    "description": "E-commerce order API that automatically sends email notifications to admins",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "📧 Orders with Email Notifications",
+      "description": "API endpoints for creating orders that trigger admin email notifications",
+      "item": [
+        {
+          "name": "Create Guest Order (COD) - Sends Email",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"client_name\": \"Ahmed\",\n  \"client_lastname\": \"Benali\",\n  \"email\": \"ahmed.benali@gmail.com\",\n  \"phone\": \"+212661234567\",\n  \"products_id\": 1,\n  \"method_payment\": \"cod\",\n  \"payment_method\": \"cod\",\n  \"address\": \"123 Rue Hassan II, Casablanca, Morocco\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/orders",
+              "host": ["{{base_url}}"],
+              "path": ["api", "orders"]
+            },
+            "description": "Creates a guest order with Cash on Delivery payment. Automatically sends email notification to admin with customer and order details."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Guest Order (Online Payment) - Sends Email",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"client_name\": \"Fatima\",\n  \"client_lastname\": \"Alaoui\",\n  \"email\": \"fatima.alaoui@hotmail.com\",\n  \"phone\": \"+212665432198\",\n  \"products_id\": 1,\n  \"method_payment\": \"online\",\n  \"payment_method\": \"online\",\n  \"address\": \"456 Avenue Mohammed V, Rabat, Morocco\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/orders",
+              "host": ["{{base_url}}"],
+              "path": ["api", "orders"]
+            },
+            "description": "Creates a guest order with Online payment. Automatically sends email notification to admin with customer and order details."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Test Order - Quick Email Test",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"client_name\": \"Email Test\",\n  \"client_lastname\": \"From Postman\",\n  \"email\": \"test@postman.com\",\n  \"phone\": \"+212600123456\",\n  \"products_id\": 1,\n  \"method_payment\": \"cod\",\n  \"payment_method\": \"cod\",\n  \"address\": \"123 Test Street, Test City, Morocco\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/orders",
+              "host": ["{{base_url}}"],
+              "path": ["api", "orders"]
+            },
+            "description": "Quick test order to verify email notifications are working. Check anouarechcharai@gmail.com for the email notification."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Authenticated User Order - Sends Email",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"client_name\": \"Youssef\",\n  \"client_lastname\": \"Tazi\",\n  \"email\": \"youssef.tazi@yahoo.com\",\n  \"phone\": \"+212667891234\",\n  \"products_id\": 1,\n  \"method_payment\": \"cod\",\n  \"payment_method\": \"cod\",\n  \"address\": \"789 Boulevard Zerktouni, Marrakech, Morocco\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/orders",
+              "host": ["{{base_url}}"],
+              "path": ["api", "orders"]
+            },
+            "description": "Creates an order for an authenticated user. Requires Authorization header. Automatically sends email notification to admin."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "🔧 Utility Endpoints",
+      "description": "Helper endpoints for testing and verification",
+      "item": [
+        {
+          "name": "Get All Orders",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/orders",
+              "host": ["{{base_url}}"],
+              "path": ["api", "orders"]
+            },
+            "description": "Retrieve all orders to verify order creation"
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Products",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/products",
+              "host": ["{{base_url}}"],
+              "path": ["api", "products"]
+            },
+            "description": "Get available products to use their IDs in orders"
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000",
+      "type": "string",
+      "description": "Base URL for the Laravel backend API"
+    },
+    {
+      "key": "auth_token",
+      "value": "",
+      "type": "string",
+      "description": "JWT token for authenticated requests (optional)"
+    }
+  ]
+}

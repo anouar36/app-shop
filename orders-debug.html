@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Orders API Debug</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .log { margin: 10px 0; padding: 10px; border-left: 4px solid #ccc; }
+        .success { border-color: green; background: #f0fff0; }
+        .error { border-color: red; background: #fff0f0; }
+        .info { border-color: blue; background: #f0f0ff; }
+        button { margin: 5px; padding: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Orders API Debug Tool</h1>
+    
+    <button onclick="login()">1. Login as Admin</button>
+    <button onclick="fetchOrders()">2. Fetch Orders</button>
+    <button onclick="checkLocalStorage()">3. Check LocalStorage</button>
+    <button onclick="clearLogs()">Clear Logs</button>
+    
+    <div id="logs"></div>
+
+    <script>
+        function addLog(message, type = 'info') {
+            const logs = document.getElementById('logs');
+            const logDiv = document.createElement('div');
+            logDiv.className = `log ${type}`;
+            logDiv.innerHTML = `<strong>${new Date().toLocaleTimeString()}</strong>: ${message}`;
+            logs.appendChild(logDiv);
+            logs.scrollTop = logs.scrollHeight;
+        }
+
+        function clearLogs() {
+            document.getElementById('logs').innerHTML = '';
+        }
+
+        async function login() {
+            addLog('Starting admin login...');
+            try {
+                const response = await fetch('http://127.0.0.1:8001/api/admin/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: 'admin@shop.com',
+                        password: 'admin123'
+                    })
+                });
+
+                addLog(`Login response status: ${response.status}`);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    addLog(`✅ Login successful! Token: ${data.token.substring(0, 20)}...`, 'success');
+                    
+                    // Store token
+                    localStorage.setItem('admin_token', data.token);
+                    localStorage.setItem('admin_user', JSON.stringify(data.user));
+                    addLog('✅ Token stored in localStorage', 'success');
+                } else {
+                    const errorData = await response.json();
+                    addLog(`❌ Login failed: ${errorData.message}`, 'error');
+                }
+            } catch (error) {
+                addLog(`❌ Login error: ${error.message}`, 'error');
+                console.error('Login error:', error);
+            }
+        }
+
+        async function fetchOrders() {
+            addLog('Starting orders fetch...');
+            
+            const token = localStorage.getItem('admin_token');
+            if (!token) {
+                addLog('❌ No token found! Please login first.', 'error');
+                return;
+            }
+
+            addLog(`Using token: ${token.substring(0, 20)}...`);
+
+            try {
+                // Simulate the exact same request as the dashboard
+                const orderFilters = {
+                    status: 'all',
+                    search: '',
+                    sort_by: 'created_at',
+                    sort_order: 'desc'
+                };
+                
+                const orderPagination = {
+                    per_page: 15
+                };
+
+                const queryParams = new URLSearchParams({
+                    page: '1',
+                    per_page: orderPagination.per_page.toString(),
+                    ...orderFilters
+                });
+
+                addLog(`Request URL: http://127.0.0.1:8001/api/admin/orders?${queryParams}`);
+
+                const response = await fetch(`http://127.0.0.1:8001/api/admin/orders?${queryParams}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                addLog(`Orders response status: ${response.status}`);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    addLog(`✅ Orders fetched successfully! Found ${data.data.length} orders`, 'success');
+                    addLog(`Pagination: Page ${data.pagination.current_page} of ${data.pagination.last_page}, Total: ${data.pagination.total}`, 'info');
+                    
+                    // Log first order details
+                    if (data.data.length > 0) {
+                        addLog(`First order: #${data.data[0].id} - ${data.data[0].user.name} - $${data.data[0].total}`, 'info');
+                    }
+                } else if (response.status === 401) {
+                    addLog('❌ Session expired (401). Token might be invalid.', 'error');
+                    
+                    // Try to get response body
+                    const errorText = await response.text();
+                    addLog(`Error details: ${errorText}`, 'error');
+                } else {
+                    const errorText = await response.text();
+                    addLog(`❌ Orders fetch failed with status ${response.status}: ${errorText}`, 'error');
+                }
+            } catch (error) {
+                addLog(`❌ Orders fetch error: ${error.message}`, 'error');
+                console.error('Orders fetch error:', error);
+            }
+        }
+
+        function checkLocalStorage() {
+            const token = localStorage.getItem('admin_token');
+            const user = localStorage.getItem('admin_user');
+            
+            addLog('=== LocalStorage Check ===');
+            if (token) {
+                addLog(`✅ Token exists: ${token.substring(0, 20)}... (length: ${token.length})`, 'success');
+                
+                // Parse token to check if it's valid format
+                const parts = token.split('|');
+                if (parts.length === 2) {
+                    addLog(`✅ Token format valid: ID=${parts[0]}, Hash=${parts[1].substring(0, 10)}...`, 'success');
+                } else {
+                    addLog(`❌ Token format invalid: Expected 'id|hash', got '${token.substring(0, 50)}'`, 'error');
+                }
+            } else {
+                addLog('❌ No token found in localStorage', 'error');
+            }
+            
+            if (user) {
+                try {
+                    const userData = JSON.parse(user);
+                    addLog(`✅ User data: ${userData.name} (${userData.email}) - Role: ${userData.role}`, 'success');
+                } catch (e) {
+                    addLog(`❌ Invalid user data format: ${user}`, 'error');
+                }
+            } else {
+                addLog('❌ No user data found in localStorage', 'error');
+            }
+        }
+
+        // Auto-check localStorage on page load
+        window.onload = function() {
+            addLog('🔍 Debug tool loaded. Checking initial state...');
+            checkLocalStorage();
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Order Payment API Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            max-width: 1200px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background: #fafafa;
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        button {
+            margin: 5px;
+            padding: 10px 15px;
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            background: #007bff;
+            color: white;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button.success {
+            background: #28a745;
+        }
+        button.danger {
+            background: #dc3545;
+        }
+        button.warning {
+            background: #ffc107;
+            color: #212529;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            overflow: auto;
+            max-height: 400px;
+            border: 1px solid #e9ecef;
+        }
+        .result {
+            margin-top: 15px;
+        }
+        .error {
+            color: #dc3545;
+            background: #f8d7da;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #f5c6cb;
+        }
+        .success {
+            color: #155724;
+            background: #d4edda;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #c3e6cb;
+        }
+        .info {
+            color: #0c5460;
+            background: #d1ecf1;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #bee5eb;
+        }
+        input, textarea {
+            padding: 8px;
+            width: 300px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .form-group {
+            margin: 10px 0;
+        }
+        label {
+            display: inline-block;
+            width: 150px;
+            font-weight: bold;
+        }
+        .payment-method {
+            background: #e3f2fd;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            border-left: 4px solid #2196f3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛒 Order Payment API Test Suite</h1>
+        <p><strong>Description:</strong> Test the complete Order API with COD and Online Payment functionality</p>
+        
+        <div class="info">
+            <strong>API Base URL:</strong> <span id="baseUrl">http://localhost:8000/api</span><br>
+            <strong>Backend Status:</strong> <span id="backendStatus">Checking...</span>
+        </div>
+    </div>
+
+    <!-- Authentication Section -->
+    <div class="container">
+        <h2>🔐 Authentication</h2>
+        <div class="form-group">
+            <label>Admin Email:</label>
+            <input type="email" id="adminEmail" value="admin@shop.com" placeholder="admin@shop.com">
+        </div>
+        <div class="form-group">
+            <label>Admin Password:</label>
+            <input type="password" id="adminPassword" value="admin123" placeholder="admin123">
+        </div>
+        <button onclick="adminLogin()">🔑 Admin Login</button>
+        <button onclick="clientLogin()">👤 Client Login (Test User)</button>
+        <button onclick="logout()">🚪 Logout</button>
+        
+        <div class="result" id="authResult"></div>
+    </div>
+
+    <!-- Order Creation with Payment Methods -->
+    <div class="container">
+        <h2>📦 Create Orders with Payment Methods</h2>
+        
+        <div class="payment-method">
+            <h3>💰 Cash on Delivery (COD)</h3>
+            <p>Order will be created with status "Pending cash on delivery"</p>
+            <button class="warning" onclick="createCODOrder()">Create COD Order</button>
+        </div>
+        
+        <div class="payment-method">
+            <h3>💳 Online Payment - Success</h3>
+            <p>Simulate successful online payment with unique payment code</p>
+            <button class="success" onclick="createOnlineOrderSuccess()">Create Online Order (Success)</button>
+        </div>
+        
+        <div class="payment-method">
+            <h3>❌ Online Payment - Failed</h3>
+            <p>Simulate failed online payment (order should not be created)</p>
+            <button class="danger" onclick="createOnlineOrderFailed()">Create Online Order (Failed)</button>
+        </div>
+        
+        <div class="result" id="orderResult"></div>
+    </div>
+
+    <!-- Order Management -->
+    <div class="container">
+        <h2>📋 Order Management</h2>
+        <button onclick="getAllOrders()">📋 Get All Orders</button>
+        <button onclick="getOrderStatistics()">📊 Get Order Statistics</button>
+        <button onclick="updatePaymentStatus()">💳 Update Payment Status</button>
+        
+        <div class="form-group">
+            <label>Order ID:</label>
+            <input type="number" id="orderId" placeholder="Enter order ID">
+        </div>
+        <div class="form-group">
+            <label>Payment Status:</label>
+            <select id="paymentStatus">
+                <option value="pending">Pending</option>
+                <option value="paid">Paid</option>
+                <option value="failed">Failed</option>
+                <option value="refunded">Refunded</option>
+            </select>
+        </div>
+        
+        <div class="result" id="managementResult"></div>
+    </div>
+
+    <!-- API Examples for Postman -->
+    <div class="container">
+        <h2>📤 Postman Examples</h2>
+        <div class="test-section">
+            <h3>1. Admin Login</h3>
+            <strong>POST</strong> <code>http://localhost:8000/api/admin/login</code>
+            <pre id="loginExample"></pre>
+        </div>
+        
+        <div class="test-section">
+            <h3>2. Create COD Order</h3>
+            <strong>POST</strong> <code>http://localhost:8000/api/orders</code>
+            <pre id="codExample"></pre>
+        </div>
+        
+        <div class="test-section">
+            <h3>3. Create Online Payment Order</h3>
+            <strong>POST</strong> <code>http://localhost:8000/api/orders</code>
+            <pre id="onlineExample"></pre>
+        </div>
+        
+        <div class="test-section">
+            <h3>4. Update Payment Status</h3>
+            <strong>PUT</strong> <code>http://localhost:8000/api/orders/{order_id}/payment-status</code>
+            <pre id="paymentUpdateExample"></pre>
+        </div>
+    </div>
+
+    <script>
+        const baseUrl = 'http://localhost:8000/api';
+        let authToken = '';
+        
+        // Check backend status on load
+        window.onload = function() {
+            checkBackendStatus();
+            generatePostmanExamples();
+        };
+        
+        async function checkBackendStatus() {
+            try {
+                const response = await fetch(`${baseUrl}/test`);
+                const data = await response.json();
+                document.getElementById('backendStatus').innerHTML = 
+                    '<span style="color: green;">✅ Connected</span>';
+            } catch (error) {
+                document.getElementById('backendStatus').innerHTML = 
+                    '<span style="color: red;">❌ Backend not running</span>';
+            }
+        }
+        
+        async function adminLogin() {
+            const email = document.getElementById('adminEmail').value;
+            const password = document.getElementById('adminPassword').value;
+            
+            try {
+                const response = await fetch(`${baseUrl}/admin/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    authToken = data.token;
+                    document.getElementById('authResult').innerHTML = `
+                        <div class="success">
+                            <strong>✅ Admin Login Successful!</strong><br>
+                            Token: ${data.token.substring(0, 50)}...<br>
+                            User: ${data.user.name} ${data.user.last_name}<br>
+                            Role: ${data.user.role}
+                        </div>
+                    `;
+                } else {
+                    document.getElementById('authResult').innerHTML = `
+                        <div class="error">❌ Login Failed: ${data.message || 'Unknown error'}</div>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('authResult').innerHTML = `
+                    <div class="error">❌ Connection Error: ${error.message}</div>
+                `;
+            }
+        }
+        
+        async function clientLogin() {
+            try {
+                const response = await fetch(`${baseUrl}/client/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        email: 'john.doe@email.com', 
+                        password: 'password123' 
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    authToken = data.token;
+                    document.getElementById('authResult').innerHTML = `
+                        <div class="success">
+                            <strong>✅ Client Login Successful!</strong><br>
+                            User: ${data.user.name} ${data.user.last_name}
+                        </div>
+                    `;
+                } else {
+                    document.getElementById('authResult').innerHTML = `
+                        <div class="error">❌ Client Login Failed: ${data.message}</div>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('authResult').innerHTML = `
+                    <div class="error">❌ Connection Error: ${error.message}</div>
+                `;
+            }
+        }
+        
+        async function createCODOrder() {
+            const orderData = {
+                products_id: 1,
+                client_name: "John",
+                client_lastname: "Doe",
+                email: "john.doe@email.com",
+                phone: "+1234567890",
+                method_payment: "Cash on Delivery",
+                payment_method: "cod",
+                date_arrival: "2025-07-15"
+            };
+            
+            await createOrder(orderData, "COD Order");
+        }
+        
+        async function createOnlineOrderSuccess() {
+            const orderData = {
+                products_id: 1,
+                client_name: "Jane",
+                client_lastname: "Smith",
+                email: "jane.smith@email.com",
+                phone: "+1234567891",
+                method_payment: "PayPal",
+                payment_method: "online",
+                payment_status: "paid",
+                date_arrival: "2025-07-15"
+            };
+            
+            await createOrder(orderData, "Online Payment (Success)");
+        }
+        
+        async function createOnlineOrderFailed() {
+            const orderData = {
+                products_id: 1,
+                client_name: "Bob",
+                client_lastname: "Wilson",
+                email: "bob.wilson@email.com",
+                phone: "+1234567892",
+                method_payment: "Credit Card",
+                payment_method: "online",
+                payment_status: "failed",
+                date_arrival: "2025-07-15"
+            };
+            
+            await createOrder(orderData, "Online Payment (Failed)");
+        }
+        
+        async function createOrder(orderData, orderType) {
+            if (!authToken) {
+                document.getElementById('orderResult').innerHTML = `
+                    <div class="error">❌ Please login first!</div>
+                `;
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${baseUrl}/orders`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify(orderData)
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    document.getElementById('orderResult').innerHTML = `
+                        <div class="success">
+                            <strong>✅ ${orderType} Created Successfully!</strong><br>
+                            Order ID: ${data.data.order_id}<br>
+                            Order Number: ${data.data.order_number}<br>
+                            Status: ${data.data.status}<br>
+                            Payment Method: ${data.data.payment_method}<br>
+                            Payment Status: ${data.data.payment_status}<br>
+                            ${data.data.payment_code ? `Payment Code: ${data.data.payment_code}<br>` : ''}
+                            Total: ${data.data.total}
+                        </div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    document.getElementById('orderResult').innerHTML = `
+                        <div class="error">
+                            ❌ ${orderType} Failed: ${data.message}<br>
+                            ${data.error ? `Error: ${data.error}` : ''}
+                        </div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('orderResult').innerHTML = `
+                    <div class="error">❌ Connection Error: ${error.message}</div>
+                `;
+            }
+        }
+        
+        async function getAllOrders() {
+            if (!authToken) {
+                document.getElementById('managementResult').innerHTML = `
+                    <div class="error">❌ Please login first!</div>
+                `;
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${baseUrl}/orders`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                document.getElementById('managementResult').innerHTML = `
+                    <div class="success">
+                        <strong>✅ Orders Retrieved Successfully!</strong><br>
+                        Total Orders: ${data.pagination ? data.pagination.total : data.data?.length || 'Unknown'}
+                    </div>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                document.getElementById('managementResult').innerHTML = `
+                    <div class="error">❌ Error: ${error.message}</div>
+                `;
+            }
+        }
+        
+        async function getOrderStatistics() {
+            if (!authToken) {
+                document.getElementById('managementResult').innerHTML = `
+                    <div class="error">❌ Please login first!</div>
+                `;
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${baseUrl}/admin/orders/statistics`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                document.getElementById('managementResult').innerHTML = `
+                    <div class="success">
+                        <strong>✅ Order Statistics Retrieved!</strong>
+                    </div>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                document.getElementById('managementResult').innerHTML = `
+                    <div class="error">❌ Error: ${error.message}</div>
+                `;
+            }
+        }
+        
+        async function updatePaymentStatus() {
+            const orderId = document.getElementById('orderId').value;
+            const paymentStatus = document.getElementById('paymentStatus').value;
+            
+            if (!authToken) {
+                document.getElementById('managementResult').innerHTML = `
+                    <div class="error">❌ Please login first!</div>
+                `;
+                return;
+            }
+            
+            if (!orderId) {
+                document.getElementById('managementResult').innerHTML = `
+                    <div class="error">❌ Please enter an Order ID!</div>
+                `;
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${baseUrl}/orders/${orderId}/payment-status`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({
+                        payment_status: paymentStatus,
+                        payment_code: paymentStatus === 'paid' ? `PAY-${Date.now()}` : null
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    document.getElementById('managementResult').innerHTML = `
+                        <div class="success">
+                            <strong>✅ Payment Status Updated!</strong><br>
+                            Order ID: ${data.data.order_id}<br>
+                            Payment Status: ${data.data.payment_status}<br>
+                            ${data.data.payment_code ? `Payment Code: ${data.data.payment_code}` : ''}
+                        </div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    document.getElementById('managementResult').innerHTML = `
+                        <div class="error">❌ Update Failed: ${data.message}</div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('managementResult').innerHTML = `
+                    <div class="error">❌ Error: ${error.message}</div>
+                `;
+            }
+        }
+        
+        async function logout() {
+            authToken = '';
+            document.getElementById('authResult').innerHTML = `
+                <div class="info">🚪 Logged out successfully</div>
+            `;
+        }
+        
+        function generatePostmanExamples() {
+            document.getElementById('loginExample').textContent = JSON.stringify({
+                "email": "admin@shop.com",
+                "password": "admin123"
+            }, null, 2);
+            
+            document.getElementById('codExample').textContent = JSON.stringify({
+                "products_id": 1,
+                "client_name": "John",
+                "client_lastname": "Doe",
+                "email": "john.doe@email.com",
+                "phone": "+1234567890",
+                "method_payment": "Cash on Delivery",
+                "payment_method": "cod",
+                "date_arrival": "2025-07-15"
+            }, null, 2);
+            
+            document.getElementById('onlineExample').textContent = JSON.stringify({
+                "products_id": 1,
+                "client_name": "Jane",
+                "client_lastname": "Smith",
+                "email": "jane.smith@email.com",
+                "phone": "+1234567891",
+                "method_payment": "PayPal",
+                "payment_method": "online",
+                "payment_status": "paid",
+                "date_arrival": "2025-07-15"
+            }, null, 2);
+            
+            document.getElementById('paymentUpdateExample').textContent = JSON.stringify({
+                "payment_status": "paid",
+                "payment_code": "PAY-UNIQUE-CODE-123",
+                "payment_details": {
+                    "processor": "PayPal",
+                    "transaction_id": "TXN-123456789",
+                    "amount": 100.00,
+                    "currency": "USD"
+                }
+            }, null, 2);
+        }
+    </script>
+</body>
+</html>
