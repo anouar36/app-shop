@@ -7,7 +7,14 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "sonner";
+// import { toast } from "sonner"; // Temporarily disabled
+
+// Simple toast fallback
+const toast = {
+  success: (message) => console.log('✅ Success:', message),
+  error: (message) => console.log('❌ Error:', message),
+  info: (message) => console.log('ℹ️ Info:', message),
+};
 
 const heroSlides = [
   {

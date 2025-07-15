@@ -1,0 +1,75 @@
+/* 
+  Invoice Print Styles
+  This stylesheet contains specific styles for printing invoices
+*/
+
+@media print {
+  /* Hide unnecessary elements when printing */
+  body {
+    background-color: white !important;
+    font-size: 12pt;
+    color: black;
+  }
+  
+  .print\:hidden {
+    display: none !important;
+  }
+  
+  .print\:shadow-none {
+    box-shadow: none !important;
+  }
+  
+  /* Ensure the page has no margins */
+  @page {
+    margin: 0.5cm;
+    size: A4;
+  }
+  
+  /* Ensure invoice content fills the page well */
+  .print\:text-black {
+    color: black !important;
+  }
+  
+  /* Force table to not break across pages */
+  table { 
+    page-break-inside: avoid;
+  }
+  
+  /* Avoid breaking elements across pages */
+  tr, td, th, p, div { 
+    page-break-inside: avoid; 
+  }
+  
+  /* Remove background colors */
+  div, tr, td, th {
+    background-color: white !important;
+  }
+  
+  /* Ensure headers are printed on each page */
+  thead { 
+    display: table-header-group; 
+  }
+  
+  /* Make links black with no underline */
+  a {
+    color: black !important;
+    text-decoration: none !important;
+  }
+  
+  /* Adjust font sizes */
+  h1 {
+    font-size: 24pt !important;
+  }
+  
+  h2 {
+    font-size: 18pt !important;
+  }
+  
+  h3 {
+    font-size: 14pt !important;
+  }
+  
+  p, td, th, div {
+    font-size: 10pt !important;
+  }
+}

@@ -1,0 +1,54 @@
+# Dependencies
+node_modules/
+vendor/
+
+# Build outputs
+.next/
+dist/
+build/
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# Logs
+*.log
+npm-debug.log*
+
+# Cache
+.cache/
+.parcel-cache/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Laravel specific
+/storage/*.key
+/storage/app/public
+Homestead.json
+Homestead.yaml
+npm-debug.log
+yarn-error.log
+
+# Temporary files
+*.tmp
+*.temp
+
+# Test files
+test-*.html
+test-*.php
+test-*.bat
+debug-*.html
+debug-*.js
+debug-*.bat
+
+# Documentation temp files
+*.md.backup
