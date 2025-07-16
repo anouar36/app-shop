@@ -1,244 +1,90 @@
-# 🔄 Script Git Workflow Automatisé - Projet E-commerce
-# Usage: .\git-workflow-auto.ps1 [commande] [paramètres]
+# Script PowerShell pour automatiser le workflow Git complet
+Write-Host "🚀 Git Workflow Automatisé - Projet E-commerce" -ForegroundColor Green
+Write-Host "================================================" -ForegroundColor Green
 
-param(
-    [Parameter(Mandatory=$true)]
-    [ValidateSet("init", "feature", "commit", "merge", "release", "hotfix", "status", "clean")]
-    [string]$Action,
-    
-    [Parameter(Mandatory=$false)]
-    [string]$Name,
-    
-    [Parameter(Mandatory=$false)]
-    [string]$Message
-)
-
-# Configuration
-$ProjectPath = "c:\xampp\htdocs\shop"
-
-# Couleurs pour l'affichage
-function Write-Success($message) { Write-Host "✅ $message" -ForegroundColor Green }
-function Write-Info($message) { Write-Host "ℹ️  $message" -ForegroundColor Blue }
-function Write-Warning($message) { Write-Host "⚠️  $message" -ForegroundColor Yellow }
-function Write-Error($message) { Write-Host "❌ $message" -ForegroundColor Red }
-
-# Se positionner dans le projet
-Set-Location $ProjectPath
-
-switch ($Action) {
-    "init" {
-        Write-Info "Initialisation du workflow Git..."
-        
-        # Vérifier si on est dans un repo Git
-        if (-not (Test-Path ".git")) {
-            Write-Error "Ce n'est pas un repository Git!"
-            exit 1
-        }
-        
-        # Créer la branche main si elle n'existe pas
-        $branches = git branch -a
-        if ($branches -notcontains "  main" -and $branches -notcontains "* main") {
-            Write-Info "Création de la branche main..."
-            git checkout -b main
-            git push -u origin main
-        }
-        
-        # S'assurer que develop existe
-        if ($branches -notcontains "  develop" -and $branches -notcontains "* develop") {
-            Write-Info "Création de la branche develop..."
-            git checkout -b develop
-            git push -u origin develop
-        } else {
-            git checkout develop
-        }
-        
-        Write-Success "Workflow Git initialisé!"
-    }
-    
-    "feature" {
-        if (-not $Name) {
-            Write-Error "Nom de la feature requis! Usage: .\git-workflow-auto.ps1 feature nom-de-la-feature"
-            exit 1
-        }
-        
-        Write-Info "Création de la feature branch: feature/$Name"
-        
-        # S'assurer d'être sur develop et à jour
-        git checkout develop
-        git pull origin develop
-        
-        # Créer la feature branch
-        git checkout -b "feature/$Name"
-        git push -u origin "feature/$Name"
-        
-        Write-Success "Branche feature/$Name créée et poussée!"
-        Write-Info "Vous pouvez maintenant développer votre fonctionnalité."
-    }
-    
-    "commit" {
-        if (-not $Message) {
-            Write-Error "Message de commit requis! Usage: .\git-workflow-auto.ps1 commit -Message 'votre message'"
-            exit 1
-        }
-        
-        Write-Info "Ajout et commit des modifications..."
-        
-        # Afficher les fichiers modifiés
-        $status = git status --porcelain
-        if ($status) {
-            Write-Info "Fichiers modifiés:"
-            $status | ForEach-Object { Write-Host "  $_" -ForegroundColor Cyan }
-            
-            # Ajouter tous les fichiers
-            git add .
-            
-            # Commiter
-            git commit -m $Message
-            
-            # Pousser vers la branche courante
-            $currentBranch = git branch --show-current
-            git push origin $currentBranch
-            
-            Write-Success "Modifications commitées et poussées sur $currentBranch!"
-        } else {
-            Write-Warning "Aucune modification à commiter."
-        }
-    }
-    
-    "merge" {
-        if (-not $Name) {
-            Write-Error "Nom de la feature requis! Usage: .\git-workflow-auto.ps1 merge nom-de-la-feature"
-            exit 1
-        }
-        
-        Write-Info "Merge de feature/$Name dans develop..."
-        
-        # Vérifier que la feature existe
-        $branches = git branch -a
-        $featureBranch = "feature/$Name"
-        
-        if ($branches -notcontains "  $featureBranch") {
-            Write-Error "La branche $featureBranch n'existe pas!"
-            exit 1
-        }
-        
-        # Basculer sur develop et mettre à jour
-        git checkout develop
-        git pull origin develop
-        
-        # Merger la feature
-        git merge $featureBranch --no-ff -m "feat: merge $featureBranch into develop"
-        
-        # Pousser develop
-        git push origin develop
-        
-        # Demander si on veut supprimer la branche feature
-        $response = Read-Host "Voulez-vous supprimer la branche $featureBranch? (y/N)"
-        if ($response -eq "y" -or $response -eq "Y") {
-            git branch -d $featureBranch
-            git push origin --delete $featureBranch
-            Write-Success "Branche $featureBranch supprimée."
-        }
-        
-        Write-Success "Feature $Name mergée dans develop!"
-    }
-    
-    "release" {
-        if (-not $Name) {
-            Write-Error "Version de release requise! Usage: .\git-workflow-auto.ps1 release v1.0.0"
-            exit 1
-        }
-        
-        Write-Info "Création de la release $Name..."
-        
-        # Basculer sur develop et mettre à jour
-        git checkout develop
-        git pull origin develop
-        
-        # Créer la branche release
-        git checkout -b "release/$Name"
-        git push origin "release/$Name"
-        
-        Write-Info "Tests et finalisation de la release..."
-        Write-Info "Une fois prêt, la release sera mergée dans main et develop."
-        
-        # Merger dans main
-        git checkout main
-        git pull origin main
-        git merge "release/$Name" --no-ff -m "release: version $Name"
-        git tag -a $Name -m "Release $Name"
-        git push origin main --tags
-        
-        # Merger dans develop
-        git checkout develop
-        git merge "release/$Name" --no-ff -m "release: back-merge $Name into develop"
-        git push origin develop
-        
-        # Supprimer la branche release
-        git branch -d "release/$Name"
-        git push origin --delete "release/$Name"
-        
-        Write-Success "Release $Name créée et déployée!"
-    }
-    
-    "hotfix" {
-        if (-not $Name) {
-            Write-Error "Nom du hotfix requis! Usage: .\git-workflow-auto.ps1 hotfix nom-du-fix"
-            exit 1
-        }
-        
-        Write-Info "Création du hotfix: hotfix/$Name"
-        
-        # Basculer sur main et mettre à jour
-        git checkout main
-        git pull origin main
-        
-        # Créer la branche hotfix
-        git checkout -b "hotfix/$Name"
-        git push origin "hotfix/$Name"
-        
-        Write-Success "Branche hotfix/$Name créée!"
-        Write-Info "Effectuez vos corrections, puis utilisez 'commit' et un merge manuel."
-    }
-    
-    "status" {
-        Write-Info "État du repository Git:"
-        
-        # Branche courante
-        $currentBranch = git branch --show-current
-        Write-Host "📍 Branche courante: " -NoNewline
-        Write-Host $currentBranch -ForegroundColor Yellow
-        
-        # Statut
-        Write-Host "`n📋 Statut:"
-        git status --short
-        
-        # Branches
-        Write-Host "`n🌿 Branches:"
-        git branch -a
-        
-        # Derniers commits
-        Write-Host "`n📝 Derniers commits:"
-        git log --oneline -5 --graph
-    }
-    
-    "clean" {
-        Write-Info "Nettoyage des branches obsolètes..."
-        
-        # Supprimer les branches mergées
-        Write-Info "Suppression des branches locales mergées..."
-        git branch --merged develop | Where-Object { $_ -notmatch "develop|main|\*" } | ForEach-Object {
-            $branch = $_.Trim()
-            git branch -d $branch
-            Write-Success "Branche locale $branch supprimée"
-        }
-        
-        # Nettoyer les références distantes
-        Write-Info "Nettoyage des références distantes..."
-        git remote prune origin
-        
-        Write-Success "Nettoyage terminé!"
-    }
+# Menu principal
+function Show-Menu {
+    Write-Host "`n📋 Que veux-tu faire ?" -ForegroundColor Cyan
+    Write-Host "1. ➕ Créer une nouvelle feature"
+    Write-Host "2. ✅ Finaliser une feature existante"
+    Write-Host "3. 🔀 Merger develop vers main (production)"
+    Write-Host "4. 📊 Voir le statut Git"
+    Write-Host "5. 🌿 Voir toutes les branches"
+    Write-Host "6. 📜 Voir l'historique"
+    Write-Host "7. ❌ Quitter"
+    Write-Host ""
 }
 
-Write-Host "`n🔄 Workflow Git terminé!" -ForegroundColor Green
+# Se positionner dans le projet
+Set-Location "c:\xampp\htdocs\shop"
+
+do {
+    Show-Menu
+    $choice = Read-Host "Choix (1-7)"
+    
+    switch ($choice) {
+        "1" {
+            $featureName = Read-Host "📝 Nom de la nouvelle feature (ex: payment-integration)"
+            if ($featureName) {
+                .\git-create-feature.ps1 $featureName
+            }
+        }
+        "2" {
+            # Afficher les branches feature existantes
+            Write-Host "🌿 Branches feature existantes:" -ForegroundColor Yellow
+            git branch | Where-Object { $_ -match "feature/" }
+            
+            $featureName = Read-Host "📝 Nom de la feature à finaliser (sans 'feature/')"
+            if ($featureName) {
+                $commitMsg = Read-Host "💬 Message de commit (optionnel)"
+                if ($commitMsg) {
+                    .\git-finish-feature.ps1 $featureName $commitMsg
+                } else {
+                    .\git-finish-feature.ps1 $featureName
+                }
+            }
+        }
+        "3" {
+            Write-Host "🚀 Déploiement vers production (main)..." -ForegroundColor Green
+            git checkout main
+            git pull origin main
+            git merge develop
+            git push origin main
+            
+            $createTag = Read-Host "🏷️ Créer un tag de version ? (y/N)"
+            if ($createTag -eq "y" -or $createTag -eq "Y") {
+                $version = Read-Host "📋 Version (ex: v1.0.0)"
+                if ($version) {
+                    git tag -a $version -m "Version $version"
+                    git push origin $version
+                    Write-Host "✅ Tag $version créé" -ForegroundColor Green
+                }
+            }
+        }
+        "4" {
+            Write-Host "📊 Statut Git:" -ForegroundColor Cyan
+            git status
+        }
+        "5" {
+            Write-Host "🌿 Toutes les branches:" -ForegroundColor Cyan
+            git branch -a
+        }
+        "6" {
+            Write-Host "📜 Historique Git:" -ForegroundColor Cyan
+            git log --oneline --graph -10
+        }
+        "7" {
+            Write-Host "👋 Au revoir!" -ForegroundColor Green
+            break
+        }
+        default {
+            Write-Host "❌ Choix invalide. Essaie encore." -ForegroundColor Red
+        }
+    }
+    
+    if ($choice -ne "7") {
+        Read-Host "`nAppuie sur Entrée pour continuer..."
+        Clear-Host
+    }
+    
+} while ($choice -ne "7")
