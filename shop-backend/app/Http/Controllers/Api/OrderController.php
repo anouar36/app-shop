@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Models\AdminNotification;
 use App\Mail\OrderNotification;
 use App\Mail\EnhancedOrderNotification;
+use App\Services\WhatsAppService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
@@ -206,8 +207,49 @@ class OrderController extends Controller
                 }
             }
             
-            // Check if user is authenticated (optional)
-            $user = $request->user();
+            // Check if user is authenticated (optional) - handle gracefully if no DB connection
+            $user = null;
+            try {
+                $user = $request->user();
+            } catch (\Exception $e) {
+                // If authentication fails (e.g., DB connection issue), treat as guest
+                \Log::warning('Authentication check failed, treating as guest user', ['error' => $e->getMessage()]);
+                $user = null;
+            }
+            
+            // Normalize payment method field - accept both method_payment and payment_method
+            $requestData = $request->all();
+            
+            // Handle payment method normalization - ensure both fields are set
+            if (isset($requestData['method_payment']) && !isset($requestData['payment_method'])) {
+                // Convert method_payment to payment_method format
+                if ($requestData['method_payment'] === 'cash_on_delivery') {
+                    $requestData['payment_method'] = 'cod';
+                } elseif ($requestData['method_payment'] === 'bank_transfer') {
+                    $requestData['payment_method'] = 'online';
+                } else {
+                    // Default mapping for other values
+                    $requestData['payment_method'] = 'cod';
+                }
+            } elseif (isset($requestData['payment_method']) && !isset($requestData['method_payment'])) {
+                // Convert payment_method to method_payment format for database storage
+                if ($requestData['payment_method'] === 'cod') {
+                    $requestData['method_payment'] = 'Cash on Delivery';
+                } elseif ($requestData['payment_method'] === 'online') {
+                    $requestData['method_payment'] = 'Online Payment';
+                } else {
+                    $requestData['method_payment'] = 'Cash on Delivery';
+                }
+            }
+            
+            // Ensure both fields exist with default values if neither is provided
+            if (!isset($requestData['payment_method']) && !isset($requestData['method_payment'])) {
+                $requestData['payment_method'] = 'cod';
+                $requestData['method_payment'] = 'Cash on Delivery';
+            }
+            
+            // Merge the normalized data back into the request
+            $request->merge($requestData);
             
             // Simplify validation for debugging - check one field at a time
             $rules = [
@@ -216,7 +258,7 @@ class OrderController extends Controller
                 'client_lastname' => 'required|string|max:255',
                 'email' => 'required|email|max:255',
                 'phone' => 'required|string|max:20',
-                'method_payment' => 'required|string|max:50',
+                'method_payment' => 'required|string|max:255',
                 'payment_method' => 'required|in:cod,online'
             ];
             
@@ -228,6 +270,8 @@ class OrderController extends Controller
                     $errors[$field] = "Field {$field} is missing or empty. Received: " . json_encode($value);
                 } elseif ($field === 'products_id' && (!is_numeric($value) || $value < 1)) {
                     $errors[$field] = "Field {$field} must be a positive integer. Received: " . json_encode($value);
+                } elseif ($field === 'payment_method' && !in_array($value, ['cod', 'online'])) {
+                    $errors[$field] = "Field {$field} must be 'cod' or 'online'. Received: " . json_encode($value);
                 }
             }
             
@@ -249,8 +293,8 @@ class OrderController extends Controller
                 'client_lastname' => 'required|string|max:255',
                 'email' => 'required|email|max:255',
                 'phone' => 'required|string|max:20',
-                'method_payment' => 'required|string|max:50',
-                'payment_method' => 'required|in:cod,online',
+                'method_payment' => 'required|string|max:255',  // Original database field
+                'payment_method' => 'required|in:cod,online',   // API logic field
                 'payment_status' => 'sometimes|in:pending,paid,failed',
                 'payment_code' => 'nullable|string',
                 'payment_details' => 'nullable|array',
@@ -333,6 +377,27 @@ class OrderController extends Controller
                     'order_id' => $order->id,
                     'notification_id' => $notification->id,
                     'error' => $emailError->getMessage()
+                ]);
+            }
+
+            // Send WhatsApp confirmation to client
+            try {
+                $whatsappService = new WhatsAppService();
+                $whatsappSent = $whatsappService->sendOrderConfirmation($order);
+                
+                if ($whatsappSent) {
+                    \Log::info('WhatsApp order confirmation sent to client', [
+                        'order_id' => $order->id,
+                        'client_phone' => $order->phone,
+                        'client_name' => $order->client_name . ' ' . $order->client_lastname
+                    ]);
+                }
+            } catch (\Exception $whatsappError) {
+                // Log WhatsApp error but don't fail the order creation
+                \Log::error('Failed to send WhatsApp order confirmation', [
+                    'order_id' => $order->id,
+                    'client_phone' => $order->phone,
+                    'error' => $whatsappError->getMessage()
                 ]);
             }
 

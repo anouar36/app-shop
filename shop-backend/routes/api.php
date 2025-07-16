@@ -90,6 +90,78 @@ Route::get('/test-db', function () {
     }
 });
 
+// Test WhatsApp service
+Route::post('/test-whatsapp', function (Request $request) {
+    try {
+        $whatsappService = new \App\Services\WhatsAppService();
+        
+        $phone = $request->input('phone', '212639383709'); // Default test number
+        $message = $request->input('message', 'Test message from your shop system! 🛒');
+        
+        $result = $whatsappService->sendCustomMessage($phone, $message);
+        
+        return response()->json([
+            'success' => $result['success'],
+            'message' => $result['success'] ? 'WhatsApp message sent successfully!' : 'Failed to send WhatsApp message',
+            'data' => $result,
+            'phone_used' => $phone
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage()
+        ], 500);
+    }
+});
+
+// Test WhatsApp with order confirmation format
+Route::post('/test-whatsapp-order', function (Request $request) {
+    try {
+        $whatsappService = new \App\Services\WhatsAppService();
+        
+        // Get order ID from request or use a test order
+        $orderId = $request->input('order_id');
+        
+        if ($orderId) {
+            $order = \App\Models\Order::with('product')->find($orderId);
+            if (!$order) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Order not found'
+                ], 404);
+            }
+        } else {
+            // Create a fake order for testing
+            $order = new \App\Models\Order();
+            $order->id = 999;
+            $order->client_name = 'Test';
+            $order->client_lastname = 'Customer';
+            $order->phone = $request->input('phone', '212639383709');
+            $order->payment_method = 'cod';
+            
+            // Create fake product
+            $product = new \App\Models\Product();
+            $product->name = 'Test Product';
+            $product->price = 299.99;
+            $order->setRelation('product', $product);
+        }
+        
+        $result = $whatsappService->sendOrderConfirmation($order);
+        
+        return response()->json([
+            'success' => $result,
+            'message' => $result ? 'WhatsApp order confirmation sent!' : 'Failed to send WhatsApp confirmation',
+            'order_phone' => $order->phone,
+            'order_name' => $order->client_name . ' ' . $order->client_lastname
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage()
+        ], 500);
+    }
+});
+
 // Test product creation route
 Route::post('/test-product', function (Request $request) {
     try {
