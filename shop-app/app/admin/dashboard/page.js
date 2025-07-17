@@ -12,7 +12,35 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+} from 'chart.js';
+import { Line, Bar, Doughnut } from 'react-chartjs-2';
 import "./animations.css";
+
+// Register Chart.js components
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+);
 
 export default function AdminDashboard() {
   const [activeMenu, setActiveMenu] = useState("dashboard");
@@ -67,24 +95,217 @@ export default function AdminDashboard() {
     total: 0,
     from: 0,
     to: 0
-  });
-  
-  // Customer management states
+  });    // Customer management states
   const [customers, setCustomers] = useState([]);
   const [loadingCustomers, setLoadingCustomers] = useState(false);
-  const [customerSearch, setCustomerSearch] = useState('');
-  
-  const [productFormData, setProductFormData] = useState({
+  const [customerSearch, setCustomerSearch] = useState('');    
+  // Customer editing states
+  const [showEditCustomerModal, setShowEditCustomerModal] = useState(false);
+  const [editingCustomer, setEditingCustomer] = useState(null);
+  const [editCustomerForm, setEditCustomerForm] = useState({
+    name: '',
+    last_name: '',
+    email: '',
+    phone: '',
+    role_id: 2 // Default to customer role
+  });
+  const [editCustomerLoading, setEditCustomerLoading] = useState(false);
+
+  // Product editing states
+  const [showEditProductModal, setShowEditProductModal] = useState(false);
+  const [editingProduct, setEditingProduct] = useState(null);  const [editProductForm, setEditProductForm] = useState({
     name: '',
     category_id: '',
     price: '',
     current_price: '',
     description: '',
     size: '',
+    status: 'active',
+    images: [],
+    currentImages: [] // To track existing images
+  });
+  const [editProductLoading, setEditProductLoading] = useState(false);
+
+  // Order editing states
+  const [showEditOrderModal, setShowEditOrderModal] = useState(false);
+  const [editingOrder, setEditingOrder] = useState(null);
+  const [editOrderForm, setEditOrderForm] = useState({
+    // Customer information
+    client_name: '',
+    client_lastname: '',
+    email: '',
+    phone: '',
+    
+    // Delivery information
+    delivery_address: '',
+    delivery_notes: '',
+    date_arrival: '',
+    
+    // Order content
+    products_id: '',
+    quantity: 1,
+    special_instructions: '',
+    
+    // Order notes
+    admin_notes: '',
+    customer_notes: ''
+  });
+  const [editOrderLoading, setEditOrderLoading] = useState(false);
+    const [productFormData, setProductFormData] = useState({
+    name: '',
+    category_id: '',
+    price: '',
+    current_price: '',
+    description: '',
+    size: '',
+    status: 'active',
     images: []
   });
-  
-  const router = useRouter();  useEffect(() => {
+    const router = useRouter();
+
+  // Chart data generation functions
+  const generateSalesChartData = () => {
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const salesData = days.map(() => Math.floor(Math.random() * 100) + 20);
+    
+    return {
+      labels: days,
+      datasets: [
+        {
+          label: 'Daily Sales',
+          data: salesData,
+          borderColor: 'rgb(59, 130, 246)',
+          backgroundColor: 'rgba(59, 130, 246, 0.1)',
+          borderWidth: 2,
+          tension: 0.4,
+          fill: true,
+          pointBackgroundColor: 'rgb(59, 130, 246)',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2,
+          pointRadius: 5,
+          pointHoverRadius: 7,
+        },
+      ],
+    };
+  };
+
+  const generateRevenueChartData = () => {
+    const days = Array.from({ length: 30 }, (_, i) => {
+      const date = new Date();
+      date.setDate(date.getDate() - (29 - i));
+      return date.getDate();
+    });
+    const revenueData = days.map(() => Math.floor(Math.random() * 5000) + 1000);
+    
+    return {
+      labels: days,
+      datasets: [
+        {
+          label: 'Daily Revenue ($)',
+          data: revenueData,
+          backgroundColor: 'rgba(34, 197, 94, 0.8)',
+          borderColor: 'rgb(34, 197, 94)',
+          borderWidth: 1,
+          borderRadius: 4,
+          borderSkipped: false,
+        },
+      ],
+    };
+  };
+
+  // Chart options
+  const salesChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: false,
+      },
+      tooltip: {
+        mode: 'index',
+        intersect: false,
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        titleColor: 'white',
+        bodyColor: 'white',
+        borderColor: 'rgba(59, 130, 246, 0.5)',
+        borderWidth: 1,
+      },
+    },
+    scales: {
+      x: {
+        display: true,
+        grid: {
+          display: false,
+        },
+        ticks: {
+          color: '#6b7280',
+        },
+      },
+      y: {
+        display: true,
+        grid: {
+          color: 'rgba(0, 0, 0, 0.1)',
+        },
+        ticks: {
+          color: '#6b7280',
+        },
+      },
+    },
+    interaction: {
+      intersect: false,
+      mode: 'index',
+    },
+  };
+
+  const revenueChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: false,
+      },
+      tooltip: {
+        mode: 'index',
+        intersect: false,
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        titleColor: 'white',
+        bodyColor: 'white',
+        borderColor: 'rgba(34, 197, 94, 0.5)',
+        borderWidth: 1,
+        callbacks: {
+          label: function(context) {
+            return `$${context.parsed.y.toLocaleString()}`;
+          },
+        },
+      },
+    },
+    scales: {
+      x: {
+        display: true,
+        grid: {
+          display: false,
+        },
+        ticks: {
+          color: '#6b7280',
+          maxTicksLimit: 10,
+        },
+      },
+      y: {
+        display: true,
+        grid: {
+          color: 'rgba(0, 0, 0, 0.1)',
+        },
+        ticks: {
+          color: '#6b7280',
+          callback: function(value) {
+            return '$' + value.toLocaleString();
+          },
+        },
+      },
+    },
+  };
+
+  useEffect(() => {
     setMounted(true);
     checkAuth();
     fetchDashboardData();
@@ -551,13 +772,496 @@ export default function AdminDashboard() {
       setLoadingCustomers(false);
     }
   };
-    // Function to copy text to clipboard
+  // Function to copy text to clipboard
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text).then(() => {
       toast.success("Copied to clipboard!");
     }).catch((err) => {
       console.error('Failed to copy text: ', err);
       toast.error("Failed to copy to clipboard");
+    });
+  };
+
+  // Order editing functions
+  const openEditOrderModal = (order) => {
+    setEditingOrder(order);
+    setEditOrderForm({
+      client_name: order.client_name || '',
+      client_lastname: order.client_lastname || '',
+      email: order.email || '',
+      phone: order.phone || '',
+      delivery_address: order.delivery_address || '',
+      delivery_notes: order.delivery_notes || '',
+      date_arrival: order.date_arrival || '',
+      products_id: order.products_id?.toString() || '',
+      quantity: order.quantity || 1,
+      special_instructions: order.special_instructions || '',
+      admin_notes: order.admin_notes || '',
+      customer_notes: order.customer_notes || ''
+    });
+    setShowEditOrderModal(true);
+  };
+
+  const closeEditOrderModal = () => {
+    setShowEditOrderModal(false);
+    setEditingOrder(null);
+    setEditOrderForm({
+      client_name: '',
+      client_lastname: '',
+      email: '',
+      phone: '',
+      delivery_address: '',
+      delivery_notes: '',
+      date_arrival: '',
+      products_id: '',
+      quantity: 1,
+      special_instructions: '',
+      admin_notes: '',
+      customer_notes: ''
+    });
+  };
+
+  const handleEditOrderFormChange = (field, value) => {
+    setEditOrderForm(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const saveAllOrderChanges = async () => {
+    if (!editingOrder) return;
+    
+    setEditOrderLoading(true);
+    const token = localStorage.getItem('admin_token');
+    
+    if (!token) {
+      toast.error("Please log in again");
+      setEditOrderLoading(false);
+      return;
+    }
+
+    try {
+      // Update customer information
+      const customerResponse = await fetch(`http://127.0.0.1:8001/api/admin/orders/${editingOrder.id}/customer-info`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          client_name: editOrderForm.client_name,
+          client_lastname: editOrderForm.client_lastname,
+          email: editOrderForm.email,
+          phone: editOrderForm.phone
+        })
+      });
+
+      if (!customerResponse.ok) {
+        throw new Error('Failed to update customer information');
+      }
+
+      // Update delivery information
+      const deliveryResponse = await fetch(`http://127.0.0.1:8001/api/admin/orders/${editingOrder.id}/delivery-info`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          delivery_address: editOrderForm.delivery_address,
+          delivery_notes: editOrderForm.delivery_notes,
+          date_arrival: editOrderForm.date_arrival
+        })
+      });
+
+      if (!deliveryResponse.ok) {
+        throw new Error('Failed to update delivery information');
+      }
+
+      // Update product information
+      const productResponse = await fetch(`http://127.0.0.1:8001/api/admin/orders/${editingOrder.id}/product`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          products_id: parseInt(editOrderForm.products_id),
+          quantity: parseInt(editOrderForm.quantity),
+          special_instructions: editOrderForm.special_instructions
+        })
+      });
+
+      if (!productResponse.ok) {
+        throw new Error('Failed to update product information');
+      }
+
+      // Update notes
+      const notesResponse = await fetch(`http://127.0.0.1:8001/api/admin/orders/${editingOrder.id}/notes`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          admin_notes: editOrderForm.admin_notes,
+          customer_notes: editOrderForm.customer_notes
+        })
+      });
+
+      if (!notesResponse.ok) {
+        throw new Error('Failed to update order notes');
+      }
+
+      toast.success("Order updated successfully!");
+      closeEditOrderModal();
+      fetchOrders(orderPagination.current_page);
+      
+    } catch (error) {
+      console.error('Error updating order:', error);
+      toast.error(error.message || "Failed to update order");
+    } finally {
+      setEditOrderLoading(false);
+    }  };
+
+  // Customer editing functions
+  const openEditCustomerModal = (customer) => {
+    setEditingCustomer(customer);
+    setEditCustomerForm({
+      name: customer.name || '',
+      last_name: customer.last_name || '',
+      email: customer.email || '',
+      phone: customer.phone || '',
+      role_id: customer.role?.id || 2
+    });
+    setShowEditCustomerModal(true);
+  };
+
+  const closeEditCustomerModal = () => {
+    setShowEditCustomerModal(false);
+    setEditingCustomer(null);
+    setEditCustomerForm({
+      name: '',
+      last_name: '',
+      email: '',
+      phone: '',
+      role_id: 2
+    });
+  };
+
+  const handleEditCustomerFormChange = (field, value) => {
+    setEditCustomerForm(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+  const saveCustomerChanges = async () => {
+    if (!editingCustomer) return;
+    
+    setEditCustomerLoading(true);
+    const token = localStorage.getItem('admin_token');
+    
+    if (!token) {
+      toast.error("Please log in again");
+      setEditCustomerLoading(false);
+      return;
+    }
+
+    try {
+      const response = await fetch(`http://127.0.0.1:8001/api/admin/customers/${editingCustomer.id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          name: editCustomerForm.name,
+          last_name: editCustomerForm.last_name,
+          email: editCustomerForm.email,
+          phone: editCustomerForm.phone,
+          role_id: editCustomerForm.role_id
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update customer information');
+      }
+
+      toast.success("Customer updated successfully!");
+      closeEditCustomerModal();
+      fetchCustomers(); // Refresh customers list
+      
+    } catch (error) {
+      console.error('Error updating customer:', error);
+      toast.error(error.message || "Failed to update customer");
+    } finally {
+      setEditCustomerLoading(false);
+    }
+  };  // Product editing functions
+  const openEditProductModal = (product) => {
+    setEditingProduct(product);
+    
+    // Handle both old single image and new multi-images array
+    let currentImages = [];
+    if (product.images && Array.isArray(product.images) && product.images.length > 0) {
+      // Use the new images array if available
+      currentImages = product.images;
+    } else if (product.image) {
+      // Fall back to the old single image field
+      currentImages = [product.image];
+    }
+    
+    setEditProductForm({
+      name: product.name || '',
+      category_id: product.category_id?.toString() || '',
+      price: product.price || '',
+      current_price: product.current_price || '',
+      description: product.description || '',
+      size: product.size || '',
+      status: product.status || 'active',
+      images: [], // New images to upload
+      currentImages: currentImages // Existing images (can be multiple)
+    });
+    setShowEditProductModal(true);
+    fetchCategories(); // Fetch categories when opening the modal
+  };
+  const closeEditProductModal = () => {
+    setShowEditProductModal(false);
+    setEditingProduct(null);
+    setEditProductForm({
+      name: '',
+      category_id: '',
+      price: '',
+      current_price: '',
+      description: '',
+      size: '',
+      status: 'active',
+      images: [],
+      currentImages: []
+    });
+  };
+
+  const handleEditProductFormChange = (field, value) => {
+    setEditProductForm(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+  const saveProductChanges = async () => {
+    if (!editingProduct) return;
+    
+    setEditProductLoading(true);
+    const token = localStorage.getItem('admin_token');
+    
+    if (!token) {
+      toast.error("Please log in again");
+      setEditProductLoading(false);
+      return;
+    }
+
+    try {      // Check if there are new images to upload
+      const hasNewImages = editProductForm.images && editProductForm.images.length > 0;
+      
+      // Debug logging
+      console.log('🐛 Save Product Changes Debug:', {
+        productId: editingProduct.id,
+        hasNewImages,
+        imageCount: editProductForm.images?.length || 0,
+        formData: editProductForm,
+        imagesArray: editProductForm.images,
+        imagesDetails: editProductForm.images?.map(img => ({
+          name: img.name,
+          size: img.size,
+          type: img.type,
+          lastModified: img.lastModified
+        }))
+      });
+        if (hasNewImages) {
+        // Use FormData for file upload with Laravel method spoofing
+        const formData = new FormData();
+        formData.append('_method', 'PUT'); // Laravel method spoofing for FormData
+        formData.append('name', editProductForm.name);
+        formData.append('category_id', parseInt(editProductForm.category_id));
+        formData.append('price', parseFloat(editProductForm.price));
+        formData.append('current_price', parseFloat(editProductForm.current_price));
+        formData.append('description', editProductForm.description);
+        formData.append('size', editProductForm.size || '');
+        formData.append('status', editProductForm.status);
+        
+        // Add new images with debugging
+        editProductForm.images.forEach((img, idx) => {
+          console.log(`🖼️ Adding image ${idx + 1}:`, img.name, `(${img.size} bytes)`);
+          formData.append('images[]', img);
+        });
+
+        console.log('📤 Sending FormData request with method spoofing to:', `http://127.0.0.1:8001/api/products/${editingProduct.id}`);
+
+        const response = await fetch(`http://127.0.0.1:8001/api/products/${editingProduct.id}`, {
+          method: 'POST', // Use POST with method spoofing for FormData
+          headers: {
+            'Authorization': `Bearer ${token}`
+            // Don't set Content-Type for FormData
+          },
+          body: formData
+        });
+
+        console.log('📥 Response status:', response.status);
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('❌ Response error:', errorText);
+          throw new Error(`Failed to update product: ${response.status} - ${errorText}`);
+        }
+
+        const result = await response.json();
+        console.log('✅ Update successful:', result);      } else {
+        // Use JSON for text-only updates
+        console.log('📤 Sending JSON request (no images)');
+        
+        const response = await fetch(`http://127.0.0.1:8001/api/products/${editingProduct.id}`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            name: editProductForm.name,
+            category_id: parseInt(editProductForm.category_id),
+            price: parseFloat(editProductForm.price),
+            current_price: parseFloat(editProductForm.current_price),
+            description: editProductForm.description,
+            size: editProductForm.size,
+            status: editProductForm.status
+          })
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('❌ JSON Response error:', errorText);
+          throw new Error(`Failed to update product: ${response.status} - ${errorText}`);
+        }
+
+        const result = await response.json();
+        console.log('✅ JSON Update successful:', result);
+      }
+
+      toast.success("Product updated successfully!");
+      closeEditProductModal();
+      fetchProducts(); // Refresh products list
+      
+    } catch (error) {
+      console.error('💥 Error updating product:', error);
+      toast.error(error.message || "Failed to update product");
+    } finally {
+      setEditProductLoading(false);
+    }
+  };
+
+  const toggleProductStatus = async (product) => {
+    const token = localStorage.getItem('admin_token');
+    
+    if (!token) {
+      toast.error("Please log in again");
+      return;
+    }
+
+    const newStatus = product.status === 'active' ? 'blocked' : 'active';
+    
+    try {
+      const response = await fetch(`http://127.0.0.1:8001/api/products/${product.id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          status: newStatus
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update product status');
+      }
+
+      toast.success(`Product ${newStatus === 'active' ? 'activated' : 'blocked'} successfully!`);
+      fetchProducts(); // Refresh products list
+      
+    } catch (error) {
+      console.error('Error updating product status:', error);
+      toast.error(error.message || "Failed to update product status");    }
+  };
+  // Edit product image handling functions
+  const handleEditProductImageChange = (e) => {
+    const files = Array.from(e.target.files);
+    console.log('🖼️ Image files selected:', files.length, files);
+    
+    if (files.length > 0) {
+      setEditProductForm(prev => {
+        const newState = {
+          ...prev,
+          images: prev.images ? [...prev.images, ...files] : files
+        };
+        console.log('📝 Updated edit form state:', {
+          previousImages: prev.images?.length || 0,
+          newImages: files.length,
+          totalImages: newState.images.length,
+          imageDetails: newState.images.map(img => ({ name: img.name, size: img.size }))
+        });
+        return newState;
+      });
+      
+      // Show user feedback
+      toast.success(`${files.length} image(s) selected for upload`);
+    }
+  };
+
+  const removeEditProductImage = (indexToRemove) => {
+    setEditProductForm(prev => ({
+      ...prev,
+      images: prev.images.filter((_, index) => index !== indexToRemove)
+    }));
+  };
+  const removeCurrentImage = (indexToRemove) => {
+    setEditProductForm(prev => ({
+      ...prev,
+      currentImages: prev.currentImages.filter((_, index) => index !== indexToRemove)
+    }));
+  };
+
+  // Image reordering functions for principal image management
+  const moveCurrentImageUp = (index) => {
+    if (index === 0) return; // Can't move first image up
+    setEditProductForm(prev => {
+      const newImages = [...prev.currentImages];
+      [newImages[index - 1], newImages[index]] = [newImages[index], newImages[index - 1]];
+      return { ...prev, currentImages: newImages };
+    });
+  };
+
+  const moveCurrentImageDown = (index) => {
+    if (index === editProductForm.currentImages.length - 1) return; // Can't move last image down
+    setEditProductForm(prev => {
+      const newImages = [...prev.currentImages];
+      [newImages[index], newImages[index + 1]] = [newImages[index + 1], newImages[index]];
+      return { ...prev, currentImages: newImages };
+    });
+  };
+
+  const moveNewImageUp = (index) => {
+    if (index === 0) return; // Can't move first image up
+    setEditProductForm(prev => {
+      const newImages = [...prev.images];
+      [newImages[index - 1], newImages[index]] = [newImages[index], newImages[index - 1]];
+      return { ...prev, images: newImages };
+    });
+  };
+
+  const moveNewImageDown = (index) => {
+    if (index === editProductForm.images.length - 1) return; // Can't move last image down
+    setEditProductForm(prev => {
+      const newImages = [...prev.images];
+      [newImages[index], newImages[index + 1]] = [newImages[index + 1], newImages[index]];
+      return { ...prev, images: newImages };
     });
   };
 
@@ -735,8 +1439,7 @@ export default function AdminDashboard() {
       return;
     }
 
-    try {
-      // Create FormData for file upload
+    try {      // Create FormData for file upload
       const formData = new FormData();
       formData.append('name', productFormData.name);
       formData.append('category_id', parseInt(productFormData.category_id));
@@ -744,6 +1447,7 @@ export default function AdminDashboard() {
       formData.append('current_price', parseFloat(productFormData.current_price));
       formData.append('description', productFormData.description);
       formData.append('size', productFormData.size || '');
+      formData.append('status', productFormData.status || 'active');
 
       // Add all images if present
       if (productFormData.images && productFormData.images.length > 0) {
@@ -758,8 +1462,7 @@ export default function AdminDashboard() {
         body: formData
       });
 
-      if (response.ok) {
-        const newProduct = await response.json();
+      if (response.ok) {        const newProduct = await response.json();
         toast.success("Product added successfully!");
         setShowAddProductModal(false);
         setProductFormData({
@@ -769,6 +1472,7 @@ export default function AdminDashboard() {
           current_price: '',
           description: '',
           size: '',
+          status: 'active',
           images: []
         });
         fetchProducts();
@@ -1590,12 +2294,11 @@ export default function AdminDashboard() {
                               <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
                               <circle cx="12" cy="12" r="3" />
                             </svg>
-                          </Button>
-                          <Button 
+                          </Button>                          <Button 
                             variant="ghost" 
                             size="sm" 
                             className="h-5 w-5 p-0 hover:bg-green-50 hover:text-green-600 transition-all duration-150"
-                            onClick={() => handleButtonClick(`edit-${order.id}`)}
+                            onClick={() => openEditOrderModal(order)}
                             title="Edit Order"
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1837,31 +2540,197 @@ export default function AdminDashboard() {
               <div className="text-center py-8 text-muted-foreground">
                 Loading products...
               </div>
-            ) : products.length > 0 ? (
-              <div className="space-y-2">                {products.map((product) => (
-                  <div key={product.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">
-                    <div className="flex items-center gap-4">                      {product.image ? (
-                        <img 
-                          src={`http://127.0.0.1:8001/${product.image}`}
-                          alt={product.name}
-                          className="size-12 rounded-lg object-cover border"
-                        />
-                      ) : (
-                        <div className="size-12 rounded-lg bg-primary/10 flex items-center justify-center text-sm font-bold text-primary border">
-                          #{product.id}
-                        </div>
-                      )}
+            ) : products.length > 0 ? (              <div className="space-y-2">                {products.map((product) => (
+                  <div key={product.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">                    <div className="flex items-center gap-4">
+                      {/* Enhanced Multi-Image Display */}
+                      <div className="flex flex-col gap-2">
+                        {/* Main/Principal Image Display */}
+                        {(() => {
+                          // Get the display image - prioritize the last image (most recent)
+                          let displayImage = null;
+                          let allImages = [];
+                          
+                          // Handle multi-images array (new system)
+                          if (product.images && Array.isArray(product.images) && product.images.length > 0) {
+                            allImages = product.images;
+                            // Show the LAST image as the main display (most recent)
+                            displayImage = product.images[product.images.length - 1];
+                          } 
+                          // Fallback to single image (old system)
+                          else if (product.image) {
+                            allImages = [product.image];
+                            displayImage = product.image;
+                          }
+
+                          return (
+                            <div className="flex flex-col gap-2">
+                              {/* Principal Display Image - Last/Most Recent */}
+                              {displayImage ? (
+                                <div className="relative group">
+                                  <img 
+                                    src={`http://127.0.0.1:8001/${displayImage}`}
+                                    alt={product.name}
+                                    className="w-16 h-16 rounded-lg object-cover border-2 border-gray-200 group-hover:border-blue-300 transition-all duration-200 shadow-sm"
+                                    onError={(e) => {
+                                      e.target.src = '/placeholder-image.png';
+                                    }}
+                                  />
+                                  {/* Badge indicating this is the most recent image */}
+                                  {allImages.length > 1 && (
+                                    <div className="absolute -top-1 -right-1 bg-blue-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs font-bold">
+                                      {allImages.length}
+                                    </div>
+                                  )}
+                                  {/* Last image indicator */}
+                                  <div className="absolute bottom-0 left-0 bg-gradient-to-r from-green-500 to-blue-500 text-white px-1 py-0.5 rounded-tr-md text-xs font-semibold">
+                                    LATEST
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="w-16 h-16 rounded-lg bg-primary/10 flex items-center justify-center text-sm font-bold text-primary border-2 border-dashed border-gray-300">
+                                  #{product.id}
+                                </div>
+                              )}
+
+                              {/* Small Image Cards Grid - 4 per line */}
+                              {allImages.length > 1 && (
+                                <div className="w-16">
+                                  <div className="grid grid-cols-4 gap-0.5">
+                                    {allImages.slice(0, 8).map((image, index) => (
+                                      <div 
+                                        key={index} 
+                                        className="relative group cursor-pointer"
+                                        title={`Image ${index + 1}${index === allImages.length - 1 ? ' (Latest)' : index === 0 ? ' (Principal)' : ''}`}
+                                      >
+                                        <img 
+                                          src={`http://127.0.0.1:8001/${image}`}
+                                          alt={`${product.name} ${index + 1}`}
+                                          className={`w-3.5 h-3.5 rounded-sm object-cover transition-all duration-200 ${
+                                            index === 0 
+                                              ? 'border border-yellow-400 shadow-sm' // Principal image
+                                              : index === allImages.length - 1 
+                                              ? 'border border-green-400 shadow-sm' // Latest image
+                                              : 'border border-gray-200'
+                                          } group-hover:scale-110 group-hover:z-10 group-hover:shadow-md`}
+                                          onError={(e) => {
+                                            e.target.src = '/placeholder-image.png';
+                                          }}
+                                        />
+                                        {/* Overlay indicators */}
+                                        {index === 0 && (
+                                          <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-yellow-400 rounded-full"></div>
+                                        )}
+                                        {index === allImages.length - 1 && index !== 0 && (
+                                          <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-green-400 rounded-full"></div>
+                                        )}
+                                      </div>
+                                    ))}
+                                    {/* Show "+X more" if there are more than 8 images */}
+                                    {allImages.length > 8 && (
+                                      <div className="w-3.5 h-3.5 bg-gray-100 rounded-sm flex items-center justify-center text-xs font-bold text-gray-600 border border-gray-300">
+                                        +{allImages.length - 8}
+                                      </div>
+                                    )}
+                                  </div>
+                                  {/* Legend */}
+                                  <div className="mt-1 text-xs text-gray-500 leading-tight">
+                                    <div className="flex items-center gap-1">
+                                      <div className="w-1 h-1 bg-yellow-400 rounded-full"></div>
+                                      <span>Main</span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                      <div className="w-1 h-1 bg-green-400 rounded-full"></div>
+                                      <span>Latest</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
+
+                        {/* Image Count Summary */}
+                        {(() => {
+                          let imageCount = 0;
+                          if (product.images && Array.isArray(product.images)) {
+                            imageCount = product.images.length;
+                          } else if (product.image) {
+                            imageCount = 1;
+                          }
+                          
+                          return imageCount > 0 ? (
+                            <div className="text-xs text-center text-gray-500 font-medium">
+                              {imageCount} image{imageCount !== 1 ? 's' : ''}
+                            </div>
+                          ) : (
+                            <div className="text-xs text-center text-red-500 font-medium">
+                              No images
+                            </div>
+                          );
+                        })()}
+                      </div>
+
                       <div>
-                        <div className="font-medium">{product.name}</div>
+                        <div className="flex items-center gap-2">
+                          <div className="font-medium">{product.name}</div>
+                          <span className={`px-2 py-1 text-xs rounded-full ${
+                            (product.status || 'active') === 'active' 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-red-100 text-red-800'
+                          }`}>
+                            {(product.status || 'active') === 'active' ? 'Active' : 'Blocked'}
+                          </span>
+                        </div>
                         <div className="text-sm text-muted-foreground">{product.description}</div>
                         <div className="text-xs text-gray-500">Size: {product.size || 'N/A'}</div>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <div className="font-medium">${product.current_price}</div>
-                      {product.price !== product.current_price && (
-                        <div className="text-sm text-gray-500 line-through">${product.price}</div>
-                      )}                      <div className="text-xs text-blue-600">Category ID: {product.category_id}</div>
+                    <div className="flex items-center gap-3">
+                      <div className="text-right">
+                        <div className="font-medium">${product.current_price}</div>
+                        {product.price !== product.current_price && (
+                          <div className="text-sm text-gray-500 line-through">${product.price}</div>
+                        )}                        <div className="text-xs text-blue-600">Category ID: {product.category_id}</div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {/* Edit Button */}
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="h-8 w-8 p-0"
+                          onClick={() => openEditProductModal(product)}
+                          title="Edit Product"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                            <path d="m18.5 2.5-3.1 3.1c-.4.4-1.5.4-1.9 0L12 4.1c-.4-.4-.4-1.5 0-1.9l3.1-3.1c.4-.4 1.5-.4 1.9 0l1.5 1.5c.4.4.4 1.5 0 1.9Z"></path>
+                          </svg>
+                        </Button>
+                        {/* Block/Unblock Button */}
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className={`h-8 w-8 p-0 ${
+                            (product.status || 'active') === 'active' 
+                              ? 'hover:bg-red-50 hover:border-red-300' 
+                              : 'hover:bg-green-50 hover:border-green-300'
+                          }`}
+                          onClick={() => toggleProductStatus(product)}
+                          title={(product.status || 'active') === 'active' ? 'Block Product' : 'Unblock Product'}
+                        >
+                          {(product.status || 'active') === 'active' ? (
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-600">
+                              <circle cx="12" cy="12" r="10"></circle>
+                              <path d="m4.9 4.9 14.2 14.2"></path>
+                            </svg>
+                          ) : (
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-600">
+                              <path d="M9 12l2 2 4-4"></path>
+                              <circle cx="12" cy="12" r="10"></circle>
+                            </svg>
+                          )}
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -2003,10 +2872,15 @@ export default function AdminDashboard() {
                           }`}>
                             {customer.role?.role_name || 'customer'}
                           </span>
-                        </td>
-                        <td>
+                        </td>                        <td>
                           <div className="flex items-center">
-                            <Button variant="outline" size="sm" className="h-5 w-5 p-0">
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="h-5 w-5 p-0"
+                              onClick={() => openEditCustomerModal(customer)}
+                              title="Edit Customer"
+                            >
                               <svg xmlns="http://www.w3.org/2000/svg" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
@@ -2067,25 +2941,23 @@ export default function AdminDashboard() {
             </div>
           </div>
           
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">            <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Sales Overview</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="h-48 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg flex items-center justify-center">
-                  <p className="text-muted-foreground">Sales chart will be displayed here</p>
+                <div className="h-48">
+                  <Line data={generateSalesChartData()} options={salesChartOptions} />
                 </div>
               </CardContent>
             </Card>
-            
-            <Card>
+              <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Revenue Trends</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="h-48 bg-gradient-to-br from-green-50 to-green-100 rounded-lg flex items-center justify-center">
-                  <p className="text-muted-foreground">Revenue chart will be displayed here</p>
+                <div className="h-48">
+                  <Bar data={generateRevenueChartData()} options={revenueChartOptions} />
                 </div>
               </CardContent>
             </Card>
@@ -2873,13 +3745,17 @@ export default function AdminDashboard() {
                           placeholder="S, M, L, XL" 
                         />
                       </div>
-                      
-                      <div className="space-y-1.5 sm:space-y-2">
-                        <label className="block text-xs sm:text-sm font-medium text-gray-700">Status</label>
-                        <div className="flex items-center gap-2 h-8 sm:h-9 lg:h-10 px-2 sm:px-3 bg-green-50 border-2 border-green-200 rounded-md lg:rounded-lg">
-                          <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-green-500 rounded-full"></div>
-                          <span className="text-xs sm:text-sm text-green-700 font-medium">Active</span>
-                        </div>
+                        <div className="space-y-1.5 sm:space-y-2">
+                        <label htmlFor="status" className="block text-xs sm:text-sm font-medium text-gray-700">Status</label>
+                        <Select value={productFormData.status} onValueChange={value => setProductFormData(prev => ({...prev, status: value}))}>
+                          <SelectTrigger className="w-full h-8 sm:h-9 lg:h-10 border-2 border-gray-200 rounded-md lg:rounded-lg px-2 sm:px-3 text-xs sm:text-sm focus:border-blue-500">
+                            <SelectValue placeholder="Choose status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="active">🟢 Active</SelectItem>
+                            <SelectItem value="blocked">🔴 Blocked</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
                   </div>
@@ -2962,8 +3838,7 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* Right Column - Image Gallery (Hidden on mobile, shown on lg+) */}
-                <div className="space-y-4 sm:space-y-5 lg:space-y-6">
-                  <div className="bg-white rounded-lg sm:rounded-xl p-3 sm:p-4 shadow-sm border border-gray-100">
+                <div className="space-y-4 sm:space-y-5 lg:space-y-6">                <div className="bg-white rounded-lg sm:rounded-xl p-3 sm:p-4 shadow-sm border border-gray-100">
                     <div className="flex items-center gap-2 mb-3 sm:mb-4">
                       <div className="bg-purple-100 rounded-md lg:rounded-lg p-1">
                         <svg className="w-3 h-3 sm:w-4 sm:h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2971,48 +3846,122 @@ export default function AdminDashboard() {
                         </svg>
                       </div>
                       <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-gray-800">Product Gallery</h3>
+                      <div className="ml-auto text-xs text-gray-500">
+                        First = Main • Others = Gallery
+                      </div>
                     </div>
+
+                    {/* Principal Image (First Image) Preview */}
+                    {productFormData.images && productFormData.images.length > 0 && (
+                      <div className="mb-4 space-y-3">
+                        <div className="flex items-center gap-2">
+                          <span className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-2 py-1 rounded-full text-xs font-bold">
+                            ⭐ PRINCIPAL IMAGE
+                          </span>
+                          <span className="text-xs text-gray-500">(Main banner/thumbnail)</span>
+                        </div>
+                        <div className="relative group">
+                          <div className="aspect-[16/9] rounded-lg overflow-hidden border-3 border-yellow-300 shadow-lg max-w-md mx-auto">
+                            <img 
+                              src={URL.createObjectURL(productFormData.images[0])} 
+                              alt="Principal Product Image"
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeImage(0)}
+                            className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-200"
+                          >
+                            ×
+                          </button>
+                          <div className="absolute bottom-2 left-2 bg-black/70 text-white px-2 py-1 rounded text-xs">
+                            Main Banner
+                          </div>
+                        </div>
+                      </div>
+                    )}
                     
-                    {/* Image Preview Grid - Responsive */}
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3 gap-2 sm:gap-3 mb-4 sm:mb-6">
-                      {productFormData.images && productFormData.images.length > 0 ? (
-                        productFormData.images.map((image, index) => (
-                          <div key={index} className="relative group">
-                            <div className="aspect-square rounded-md lg:rounded-lg overflow-hidden border-2 border-gray-200 shadow-sm hover:shadow-md transition-all duration-200">
-                              <img 
-                                src={URL.createObjectURL(image)} 
-                                alt={`Product ${index + 1}`}
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                              />
+                    {/* Detail Images Grid (Images 2+) */}
+                    {productFormData.images && productFormData.images.length > 1 && (
+                      <div className="mb-4 space-y-3">
+                        <div className="flex items-center gap-2">
+                          <span className="bg-gradient-to-r from-green-400 to-blue-500 text-white px-2 py-1 rounded-full text-xs font-bold">
+                            🖼️ DETAIL IMAGES
+                          </span>
+                          <span className="text-xs text-gray-500">(Product gallery)</span>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-4 gap-2 sm:gap-3">
+                          {productFormData.images.slice(1).map((image, index) => (
+                            <div key={index + 1} className="relative group">
+                              <div className="aspect-square rounded-md lg:rounded-lg overflow-hidden border-2 border-green-200 shadow-sm hover:shadow-md transition-all duration-200">
+                                <img 
+                                  src={URL.createObjectURL(image)} 
+                                  alt={`Detail ${index + 1}`}
+                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                                />
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => removeImage(index + 1)}
+                                className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center text-xs shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-200"
+                              >
+                                ×
+                              </button>
+                              <div className="absolute bottom-1 left-1 bg-black/70 text-white px-1 py-0.5 rounded text-xs">
+                                #{index + 2}
+                              </div>
                             </div>
-                            <button
-                              type="button"
-                              onClick={() => removeImage(index)}
-                              className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 flex items-center justify-center text-xs shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-200 transform hover:scale-110"
-                            >
-                              ×
-                            </button>
-                          </div>
-                        ))
-                      ) : (
-                        Array.from({ length: 6 }).map((_, index) => (
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Empty State Preview when no images */}
+                    {(!productFormData.images || productFormData.images.length === 0) && (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3 gap-2 sm:gap-3 mb-4 sm:mb-6">
+                        {Array.from({ length: 6 }).map((_, index) => (
                           <div key={index} className="aspect-square border-2 border-dashed border-gray-300 rounded-md lg:rounded-lg flex items-center justify-center bg-gray-50 hover:bg-gray-100 transition-colors duration-200">
-                            <svg className="w-4 h-4 sm:w-6 sm:h-6 lg:w-8 lg:h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
+                            {index === 0 ? (
+                              <div className="text-center">
+                                <svg className="w-4 h-4 sm:w-6 sm:h-6 lg:w-8 lg:h-8 text-yellow-400 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                                </svg>
+                                <span className="text-xs text-yellow-600 font-semibold">Main</span>
+                              </div>
+                            ) : (
+                              <svg className="w-4 h-4 sm:w-6 sm:h-6 lg:w-8 lg:h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                            )}
                           </div>
-                        ))
-                      )}
-                    </div>
+                        ))}
+                      </div>
+                    )}
                     
                     {/* Upload Section - Responsive */}
                     <div className="space-y-3 sm:space-y-4">
+                      <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-3 rounded-lg border border-blue-200">
+                        <div className="flex items-start gap-2">
+                          <div className="bg-blue-100 rounded-full p-1">
+                            <svg className="w-3 h-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          </div>
+                          <div className="flex-1 text-xs text-blue-700">
+                            <p className="font-semibold mb-1">Image Order Matters!</p>
+                            <p>• <strong>First image</strong> = Main banner/thumbnail</p>
+                            <p>• <strong>Additional images</strong> = Product gallery</p>
+                          </div>
+                        </div>
+                      </div>
+
                       <label className="group cursor-pointer block">
                         <div className="flex items-center justify-center gap-2 sm:gap-3 px-3 sm:px-4 lg:px-6 py-2 sm:py-3 lg:py-4 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white rounded-lg lg:rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5">
                           <svg className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 group-hover:scale-110 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                           </svg>
-                          <span className="font-medium text-xs sm:text-sm lg:text-base">Upload Images</span>
+                          <span className="font-medium text-xs sm:text-sm lg:text-base">Upload Product Images</span>
                         </div>
                         <input
                           type="file"
@@ -3028,7 +3977,12 @@ export default function AdminDashboard() {
                           <svg className="w-3 h-3 sm:w-4 sm:h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
-                          <span className="text-green-700 font-medium">{productFormData.images.length} image{productFormData.images.length !== 1 ? 's' : ''} selected</span>
+                          <span className="text-green-700 font-medium">
+                            {productFormData.images.length} image{productFormData.images.length !== 1 ? 's' : ''} selected
+                            {productFormData.images.length > 0 && (
+                              <span className="text-yellow-600 ml-1">(1 main + {productFormData.images.length - 1} gallery)</span>
+                            )}
+                          </span>
                         </div>
                       )}
                       
@@ -3070,6 +4024,793 @@ export default function AdminDashboard() {
                 </div>
               </div>
             </form>
+          </div>        </DialogContent>
+      </Dialog>
+
+      {/* Enhanced Edit Order Modal */}
+      <Dialog open={showEditOrderModal} onOpenChange={setShowEditOrderModal}>
+        <DialogContent className="w-full max-w-[95vw] sm:max-w-[700px] lg:max-w-[900px] max-h-[95vh] h-auto sm:h-[90vh] rounded-lg sm:rounded-xl bg-white shadow-2xl border-0 p-0 flex flex-col mx-4 sm:mx-6">
+          {/* Header */}
+          <div className="relative bg-gradient-to-r from-green-600 via-blue-600 to-purple-600 p-4 sm:p-6 flex-shrink-0">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="bg-white/20 backdrop-blur-sm rounded-lg sm:rounded-xl p-2 sm:p-3">
+                <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+              </div>
+              <div className="text-white">
+                <h3 className="text-lg sm:text-xl lg:text-2xl font-bold">Edit Order</h3>
+                <p className="text-white/80 text-sm sm:text-base">
+                  {editingOrder ? `Order #${editingOrder.id} - ${editingOrder.client_name} ${editingOrder.client_lastname}` : 'Modify order details'}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+            {editingOrder && (
+              <Tabs defaultValue="customer" className="w-full">
+                <TabsList className="grid w-full grid-cols-4 mb-6">
+                  <TabsTrigger value="customer" className="text-xs sm:text-sm">Customer</TabsTrigger>
+                  <TabsTrigger value="delivery" className="text-xs sm:text-sm">Delivery</TabsTrigger>
+                  <TabsTrigger value="product" className="text-xs sm:text-sm">Product</TabsTrigger>
+                  <TabsTrigger value="notes" className="text-xs sm:text-sm">Notes</TabsTrigger>
+                </TabsList>
+
+                {/* Customer Information Tab */}
+                <TabsContent value="customer" className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="client_name" className="text-sm font-medium">First Name</Label>
+                      <Input
+                        id="client_name"
+                        value={editOrderForm.client_name}
+                        onChange={(e) => handleEditOrderFormChange('client_name', e.target.value)}
+                        placeholder="Enter first name"
+                        className="h-10"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="client_lastname" className="text-sm font-medium">Last Name</Label>
+                      <Input
+                        id="client_lastname"
+                        value={editOrderForm.client_lastname}
+                        onChange={(e) => handleEditOrderFormChange('client_lastname', e.target.value)}
+                        placeholder="Enter last name"
+                        className="h-10"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email" className="text-sm font-medium">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={editOrderForm.email}
+                      onChange={(e) => handleEditOrderFormChange('email', e.target.value)}
+                      placeholder="Enter email address"
+                      className="h-10"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="phone" className="text-sm font-medium">Phone</Label>
+                    <Input
+                      id="phone"
+                      value={editOrderForm.phone}
+                      onChange={(e) => handleEditOrderFormChange('phone', e.target.value)}
+                      placeholder="Enter phone number"
+                      className="h-10"
+                    />
+                  </div>
+                </TabsContent>
+
+                {/* Delivery Information Tab */}
+                <TabsContent value="delivery" className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="delivery_address" className="text-sm font-medium">Delivery Address</Label>
+                    <Textarea
+                      id="delivery_address"
+                      value={editOrderForm.delivery_address}
+                      onChange={(e) => handleEditOrderFormChange('delivery_address', e.target.value)}
+                      placeholder="Enter delivery address"
+                      className="min-h-[80px]"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="date_arrival" className="text-sm font-medium">Delivery Date</Label>
+                    <Input
+                      id="date_arrival"
+                      type="date"
+                      value={editOrderForm.date_arrival}
+                      onChange={(e) => handleEditOrderFormChange('date_arrival', e.target.value)}
+                      className="h-10"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="delivery_notes" className="text-sm font-medium">Delivery Notes</Label>
+                    <Textarea
+                      id="delivery_notes"
+                      value={editOrderForm.delivery_notes}
+                      onChange={(e) => handleEditOrderFormChange('delivery_notes', e.target.value)}
+                      placeholder="Special delivery instructions..."
+                      className="min-h-[80px]"
+                    />
+                  </div>
+                </TabsContent>
+
+                {/* Product Information Tab */}
+                <TabsContent value="product" className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="products_id" className="text-sm font-medium">Product ID</Label>
+                      <Select 
+                        value={editOrderForm.products_id?.toString() || ''} 
+                        onValueChange={(value) => handleEditOrderFormChange('products_id', value)}
+                      >
+                        <SelectTrigger className="h-10">
+                          <SelectValue placeholder="Select a product" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {products.map((product) => (
+                            <SelectItem key={product.id} value={product.id.toString()}>
+                              {product.name} - ${product.current_price}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="quantity" className="text-sm font-medium">Quantity</Label>
+                      <Input
+                        id="quantity"
+                        type="number"
+                        min="1"
+                        value={editOrderForm.quantity}
+                        onChange={(e) => handleEditOrderFormChange('quantity', parseInt(e.target.value) || 1)}
+                        className="h-10"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="special_instructions" className="text-sm font-medium">Special Instructions</Label>
+                    <Textarea
+                      id="special_instructions"
+                      value={editOrderForm.special_instructions}
+                      onChange={(e) => handleEditOrderFormChange('special_instructions', e.target.value)}
+                      placeholder="Any special product instructions..."
+                      className="min-h-[80px]"
+                    />
+                  </div>
+                </TabsContent>
+
+                {/* Notes Tab */}
+                <TabsContent value="notes" className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="admin_notes" className="text-sm font-medium">Admin Notes</Label>
+                    <Textarea
+                      id="admin_notes"
+                      value={editOrderForm.admin_notes}
+                      onChange={(e) => handleEditOrderFormChange('admin_notes', e.target.value)}
+                      placeholder="Internal notes for admin team..."
+                      className="min-h-[100px]"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="customer_notes" className="text-sm font-medium">Customer Notes</Label>
+                    <Textarea
+                      id="customer_notes"
+                      value={editOrderForm.customer_notes}
+                      onChange={(e) => handleEditOrderFormChange('customer_notes', e.target.value)}
+                      placeholder="Notes from customer..."
+                      className="min-h-[100px]"
+                    />
+                  </div>
+                </TabsContent>
+              </Tabs>
+            )}
+          </div>
+
+          {/* Footer */}
+          <div className="flex flex-col sm:flex-row justify-between items-center p-4 sm:p-6 border-t border-gray-200 gap-4 sm:gap-0 flex-shrink-0">
+            <div className="text-xs sm:text-sm text-gray-500 order-2 sm:order-1">
+              <span>Changes will be saved immediately</span>
+            </div>
+            
+            <div className="flex gap-3 sm:gap-4 order-1 sm:order-2 w-full sm:w-auto">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={closeEditOrderModal}
+                disabled={editOrderLoading}
+                className="flex-1 sm:flex-none px-6 py-2.5 h-10 border-2 border-gray-300 hover:border-gray-400 hover:bg-gray-50 text-gray-700 font-medium rounded-lg transition-all duration-200"
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="button"
+                onClick={saveAllOrderChanges}
+                disabled={editOrderLoading}
+                className="flex-1 sm:flex-none px-6 py-2.5 h-10 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5 flex items-center justify-center gap-2"
+              >
+                {editOrderLoading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Save Changes
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>        </DialogContent>
+      </Dialog>
+
+      {/* Customer Edit Modal */}
+      <Dialog open={showEditCustomerModal} onOpenChange={setShowEditCustomerModal}>
+        <DialogContent className="w-full max-w-[95vw] sm:max-w-[500px] lg:max-w-[600px] max-h-[95vh] rounded-lg sm:rounded-xl bg-white shadow-2xl border-0 p-0 flex flex-col mx-4 sm:mx-6">
+          {/* Header */}
+          <div className="flex-shrink-0">
+            <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-blue-800 p-4 sm:p-6 rounded-t-lg sm:rounded-t-xl">
+              <div className="flex items-center gap-3">
+                <div className="bg-white/20 rounded-full p-2">
+                  <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </div>
+                <div className="text-white">
+                  <h3 className="text-lg sm:text-xl lg:text-2xl font-bold">Edit Customer</h3>
+                  <p className="text-white/80 text-sm sm:text-base">
+                    {editingCustomer ? `Customer #${editingCustomer.id} - ${editingCustomer.name} ${editingCustomer.last_name || ''}` : 'Modify customer details'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="customer_name" className="text-sm font-medium">First Name</Label>
+                  <Input
+                    id="customer_name"
+                    value={editCustomerForm.name}
+                    onChange={(e) => handleEditCustomerFormChange('name', e.target.value)}
+                    placeholder="Enter first name"
+                    className="h-10"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="customer_last_name" className="text-sm font-medium">Last Name</Label>
+                  <Input
+                    id="customer_last_name"
+                    value={editCustomerForm.last_name}
+                    onChange={(e) => handleEditCustomerFormChange('last_name', e.target.value)}
+                    placeholder="Enter last name"
+                    className="h-10"
+                  />
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="customer_email" className="text-sm font-medium">Email</Label>
+                <Input
+                  id="customer_email"
+                  type="email"
+                  value={editCustomerForm.email}
+                  onChange={(e) => handleEditCustomerFormChange('email', e.target.value)}
+                  placeholder="Enter email address"
+                  className="h-10"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="customer_phone" className="text-sm font-medium">Phone</Label>
+                <Input
+                  id="customer_phone"
+                  value={editCustomerForm.phone}
+                  onChange={(e) => handleEditCustomerFormChange('phone', e.target.value)}
+                  placeholder="Enter phone number"
+                  className="h-10"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="customer_role" className="text-sm font-medium">Role</Label>
+                <Select 
+                  value={editCustomerForm.role_id?.toString() || '2'} 
+                  onValueChange={(value) => handleEditCustomerFormChange('role_id', parseInt(value))}
+                >
+                  <SelectTrigger className="h-10">
+                    <SelectValue placeholder="Select role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">Admin</SelectItem>
+                    <SelectItem value="2">Customer</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="flex flex-col sm:flex-row justify-between items-center p-4 sm:p-6 border-t border-gray-200 gap-4 sm:gap-0 flex-shrink-0">
+            <div className="text-xs sm:text-sm text-gray-500 order-2 sm:order-1">
+              <span>Changes will be saved immediately</span>
+            </div>
+            
+            <div className="flex gap-3 sm:gap-4 order-1 sm:order-2 w-full sm:w-auto">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={closeEditCustomerModal}
+                disabled={editCustomerLoading}
+                className="flex-1 sm:flex-none px-6 py-2.5 h-10 border-2 border-gray-300 hover:border-gray-400 hover:bg-gray-50 text-gray-700 font-medium rounded-lg transition-all duration-200"
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="button"
+                onClick={saveCustomerChanges}
+                disabled={editCustomerLoading}
+                className="flex-1 sm:flex-none px-6 py-2.5 h-10 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5 flex items-center justify-center gap-2"
+              >
+                {editCustomerLoading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Save Changes
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>        </DialogContent>
+      </Dialog>
+
+      {/* Enhanced Edit Product Modal */}
+      <Dialog open={showEditProductModal} onOpenChange={setShowEditProductModal}>
+        <DialogContent className="w-full max-w-[90vw] sm:max-w-[600px] lg:max-w-[700px] max-h-[95vh] h-auto rounded-lg sm:rounded-xl bg-white shadow-2xl border-0 p-0 flex flex-col mx-4 sm:mx-6">
+          {/* Header */}
+          <div className="relative bg-gradient-to-r from-orange-600 via-red-600 to-pink-600 p-4 sm:p-6 flex-shrink-0">
+            <div className="flex items-center gap-3 lg:gap-4">
+              <div className="bg-white/20 backdrop-blur-sm rounded-lg lg:rounded-xl p-1.5 sm:p-2 border border-white/30">
+                <svg className="w-5 h-5 lg:w-6 lg:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                  <path d="m18.5 2.5-3.1 3.1c-.4.4-1.5.4-1.9 0L12 4.1c-.4-.4-.4-1.5 0-1.9l3.1-3.1c.4-.4 1.5-.4 1.9 0l1.5 1.5c.4.4.4 1.5 0 1.9Z"></path>
+                </svg>
+              </div>
+              <div className="text-white">
+                <h2 className="text-lg sm:text-xl lg:text-2xl font-bold">Edit Product</h2>
+                <p className="text-white/90 text-xs sm:text-sm lg:text-base">Update product information and settings</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Form Content */}
+          <div className="flex-1 p-4 sm:p-6 overflow-y-auto">
+            <div className="space-y-4 sm:space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit_product_name" className="text-sm font-medium">Product Name *</Label>
+                  <Input
+                    id="edit_product_name"
+                    value={editProductForm.name}
+                    onChange={(e) => handleEditProductFormChange('name', e.target.value)}
+                    placeholder="Enter product name"
+                    className="h-10"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="edit_product_category" className="text-sm font-medium">Category *</Label>
+                  <Select 
+                    value={editProductForm.category_id} 
+                    onValueChange={(value) => handleEditProductFormChange('category_id', value)}
+                  >
+                    <SelectTrigger className="h-10">
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map(category => (
+                        <SelectItem key={category.id} value={category.id.toString()}>{category.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit_product_price" className="text-sm font-medium">Original Price *</Label>
+                  <Input
+                    id="edit_product_price"
+                    type="number"
+                    step="0.01"
+                    value={editProductForm.price}
+                    onChange={(e) => handleEditProductFormChange('price', e.target.value)}
+                    placeholder="0.00"
+                    className="h-10"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="edit_product_current_price" className="text-sm font-medium">Current Price *</Label>
+                  <Input
+                    id="edit_product_current_price"
+                    type="number"
+                    step="0.01"
+                    value={editProductForm.current_price}
+                    onChange={(e) => handleEditProductFormChange('current_price', e.target.value)}
+                    placeholder="0.00"
+                    className="h-10"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit_product_size" className="text-sm font-medium">Size / Variant</Label>
+                  <Input
+                    id="edit_product_size"
+                    value={editProductForm.size}
+                    onChange={(e) => handleEditProductFormChange('size', e.target.value)}
+                    placeholder="Enter size or variant"
+                    className="h-10"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="edit_product_status" className="text-sm font-medium">Status</Label>
+                  <Select 
+                    value={editProductForm.status} 
+                    onValueChange={(value) => handleEditProductFormChange('status', value)}
+                  >
+                    <SelectTrigger className="h-10">
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">🟢 Active</SelectItem>
+                      <SelectItem value="blocked">🔴 Blocked</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>              <div className="space-y-2">
+                <Label htmlFor="edit_product_description" className="text-sm font-medium">Description *</Label>
+                <Textarea
+                  id="edit_product_description"
+                  value={editProductForm.description}
+                  onChange={(e) => handleEditProductFormChange('description', e.target.value)}
+                  placeholder="Describe your product in detail..."
+                  className="min-h-[100px] resize-none"
+                />
+              </div>              {/* Enhanced Product Images Section with Principal Image Concept */}
+              <div className="space-y-6">
+                <div className="flex items-center gap-2">
+                  <div className="bg-purple-100 rounded-lg p-1">
+                    <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-sm font-semibold text-gray-800">Product Images</h3>
+                  <div className="ml-auto text-xs text-gray-500">
+                    First image = Main banner • Others = Gallery
+                  </div>
+                </div>
+
+                {/* Current Images with Principal Image Layout */}
+                {editProductForm.currentImages && editProductForm.currentImages.length > 0 && (
+                  <div className="space-y-4">
+                    <Label className="text-xs font-medium text-gray-600 flex items-center gap-2">
+                      <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs font-semibold">
+                        CURRENT IMAGES
+                      </span>
+                    </Label>
+
+                    {/* Principal Image (First Image) */}
+                    {editProductForm.currentImages[0] && (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <span className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-2 py-1 rounded-full text-xs font-bold">
+                            ⭐ PRINCIPAL IMAGE
+                          </span>
+                          <span className="text-xs text-gray-500">(Main banner/thumbnail)</span>
+                        </div>
+                        <div className="relative group">
+                          <div className="aspect-[16/9] rounded-lg overflow-hidden border-3 border-yellow-300 shadow-lg">
+                            <img 
+                              src={`http://127.0.0.1:8001/${editProductForm.currentImages[0]}`} 
+                              alt="Principal Product Image"
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                              onError={(e) => {
+                                e.target.src = '/placeholder-image.png';
+                              }}
+                            />
+                          </div>                          <button
+                            type="button"
+                            onClick={() => removeCurrentImage(0)}
+                            className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-200"
+                          >
+                            ×
+                          </button>
+                          <div className="absolute bottom-2 left-2 bg-black/70 text-white px-2 py-1 rounded text-xs">
+                            Main Banner
+                          </div>
+                          {/* Reordering buttons for principal image */}
+                          {editProductForm.currentImages.length > 1 && (
+                            <div className="absolute top-2 left-2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-all duration-200">
+                              <button
+                                type="button"
+                                onClick={() => moveCurrentImageDown(0)}
+                                className="bg-blue-500 hover:bg-blue-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shadow-lg"
+                                title="Move down (make this detail image)"
+                              >
+                                ↓
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Detail Images (Additional Images) */}
+                    {editProductForm.currentImages.length > 1 && (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <span className="bg-gradient-to-r from-green-400 to-blue-500 text-white px-2 py-1 rounded-full text-xs font-bold">
+                            🖼️ DETAIL IMAGES
+                          </span>
+                          <span className="text-xs text-gray-500">(Product gallery)</span>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                          {editProductForm.currentImages.slice(1).map((image, index) => (
+                            <div key={index + 1} className="relative group">
+                              <div className="aspect-square rounded-lg overflow-hidden border-2 border-green-200 shadow-sm">
+                                <img 
+                                  src={`http://127.0.0.1:8001/${image}`} 
+                                  alt={`Detail ${index + 1}`}
+                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                                  onError={(e) => {
+                                    e.target.src = '/placeholder-image.png';
+                                  }}
+                                />
+                              </div>                              <button
+                                type="button"
+                                onClick={() => removeCurrentImage(index + 1)}
+                                className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-200"
+                              >
+                                ×
+                              </button>
+                              <div className="absolute bottom-1 left-1 bg-black/70 text-white px-1 py-0.5 rounded text-xs">
+                                #{index + 2}
+                              </div>
+                              {/* Reordering buttons for detail images */}
+                              <div className="absolute top-1 left-1 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-all duration-200">
+                                <button
+                                  type="button"
+                                  onClick={() => moveCurrentImageUp(index + 1)}
+                                  className="bg-blue-500 hover:bg-blue-600 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs shadow-lg"
+                                  title="Move up / Make principal"
+                                >
+                                  ↑
+                                </button>
+                                {index + 1 < editProductForm.currentImages.length - 1 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => moveCurrentImageDown(index + 1)}
+                                    className="bg-blue-500 hover:bg-blue-600 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs shadow-lg"
+                                    title="Move down"
+                                  >
+                                    ↓
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* New Images to Upload */}
+                {editProductForm.images && editProductForm.images.length > 0 && (
+                  <div className="space-y-4">
+                    <Label className="text-xs font-medium text-gray-600 flex items-center gap-2">
+                      <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-semibold">
+                        NEW IMAGES
+                      </span>
+                      <span className="text-xs text-gray-500">(Will replace all current images)</span>
+                    </Label>
+
+                    {/* Preview of New Principal Image */}
+                    {editProductForm.images[0] && (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <span className="bg-gradient-to-r from-purple-400 to-pink-500 text-white px-2 py-1 rounded-full text-xs font-bold">
+                            ⭐ NEW PRINCIPAL
+                          </span>
+                          <span className="text-xs text-gray-500">(Will become main banner)</span>
+                        </div>
+                        <div className="relative group">
+                          <div className="aspect-[16/9] rounded-lg overflow-hidden border-3 border-purple-300 shadow-lg">
+                            <img 
+                              src={URL.createObjectURL(editProductForm.images[0])} 
+                              alt="New Principal Image"
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                            />
+                          </div>                          <button
+                            type="button"
+                            onClick={() => removeEditProductImage(0)}
+                            className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-200"
+                          >
+                            ×
+                          </button>
+                          <div className="absolute bottom-2 left-2 bg-black/70 text-white px-2 py-1 rounded text-xs">
+                            New Main Banner
+                          </div>
+                          {/* Reordering buttons for new principal image */}
+                          {editProductForm.images.length > 1 && (
+                            <div className="absolute top-2 left-2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-all duration-200">
+                              <button
+                                type="button"
+                                onClick={() => moveNewImageDown(0)}
+                                className="bg-purple-500 hover:bg-purple-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shadow-lg"
+                                title="Move down (make this detail image)"
+                              >
+                                ↓
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Preview of New Detail Images */}
+                    {editProductForm.images.length > 1 && (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <span className="bg-gradient-to-r from-indigo-400 to-purple-500 text-white px-2 py-1 rounded-full text-xs font-bold">
+                            🖼️ NEW DETAILS
+                          </span>
+                          <span className="text-xs text-gray-500">(Additional gallery images)</span>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                          {editProductForm.images.slice(1).map((image, index) => (
+                            <div key={index + 1} className="relative group">
+                              <div className="aspect-square rounded-lg overflow-hidden border-2 border-purple-200 shadow-sm">
+                                <img 
+                                  src={URL.createObjectURL(image)} 
+                                  alt={`New Detail ${index + 1}`}
+                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                                />
+                              </div>                              <button
+                                type="button"
+                                onClick={() => removeEditProductImage(index + 1)}
+                                className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-200"
+                              >
+                                ×
+                              </button>
+                              <div className="absolute bottom-1 left-1 bg-black/70 text-white px-1 py-0.5 rounded text-xs">
+                                #{index + 2}
+                              </div>
+                              {/* Reordering buttons for new detail images */}
+                              <div className="absolute top-1 left-1 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-all duration-200">
+                                <button
+                                  type="button"
+                                  onClick={() => moveNewImageUp(index + 1)}
+                                  className="bg-purple-500 hover:bg-purple-600 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs shadow-lg"
+                                  title="Move up / Make principal"
+                                >
+                                  ↑
+                                </button>
+                                {index + 1 < editProductForm.images.length - 1 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => moveNewImageDown(index + 1)}
+                                    className="bg-purple-500 hover:bg-purple-600 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs shadow-lg"
+                                    title="Move down"
+                                  >
+                                    ↓
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Upload New Images */}
+                <div className="space-y-3">
+                  <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-lg border border-blue-200">
+                    <div className="flex items-start gap-3">
+                      <div className="bg-blue-100 rounded-full p-1">
+                        <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <div className="flex-1 text-xs text-blue-700">
+                        <p className="font-semibold mb-1">Image Order Matters!</p>
+                        <p>• <strong>First image</strong> = Main product banner/thumbnail</p>
+                        <p>• <strong>Additional images</strong> = Product detail gallery</p>
+                        <p>• <strong>Recommended:</strong> Upload high-quality images (16:9 for main, square for details)</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <label className="group cursor-pointer block">
+                    <div className="flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5">
+                      <svg className="w-4 h-4 group-hover:scale-110 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                      </svg>
+                      <span className="font-medium text-sm">Upload Product Images</span>
+                      <span className="text-xs opacity-80">(Multiple files)</span>
+                    </div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleEditProductImageChange}
+                      className="hidden"
+                      multiple
+                    />
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="flex flex-col sm:flex-row justify-between items-center p-4 sm:p-6 border-t border-gray-200 gap-4 sm:gap-0 flex-shrink-0">
+            <div className="text-xs sm:text-sm text-gray-500 order-2 sm:order-1">
+              <span>Changes will be saved immediately</span>
+            </div>
+            
+            <div className="flex gap-3 sm:gap-4 order-1 sm:order-2 w-full sm:w-auto">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={closeEditProductModal}
+                disabled={editProductLoading}
+                className="flex-1 sm:flex-none px-6 py-2.5 h-10 border-2 border-gray-300 hover:border-gray-400 hover:bg-gray-50 text-gray-700 font-medium rounded-lg transition-all duration-200"
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="button"
+                onClick={saveProductChanges}
+                disabled={editProductLoading}
+                className="flex-1 sm:flex-none px-6 py-2.5 h-10 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5 flex items-center justify-center gap-2"
+              >
+                {editProductLoading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Save Changes
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

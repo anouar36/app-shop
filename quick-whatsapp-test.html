@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🛒 WhatsApp Order Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #25D366;
+            text-align: center;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        button {
+            background: #25D366;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+        }
+        button:hover {
+            background: #20b558;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .endpoint {
+            background: #e9ecef;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🛒 WhatsApp Order API Test</h1>
+
+    <div class="container">
+        <div class="endpoint">
+            <strong>API Endpoint:</strong> POST http://localhost:8001/api/orders
+        </div>
+
+        <form id="orderForm">
+            <div class="form-group">
+                <label>Product ID:</label>
+                <input type="number" id="products_id" value="1" required>
+            </div>
+
+            <div class="form-group">
+                <label>Client First Name:</label>
+                <input type="text" id="client_name" value="Ahmed" required>
+            </div>
+
+            <div class="form-group">
+                <label>Client Last Name:</label>
+                <input type="text" id="client_lastname" value="Benali" required>
+            </div>
+
+            <div class="form-group">
+                <label>Email:</label>
+                <input type="email" id="email" value="ahmed@example.com" required>
+            </div>
+
+            <div class="form-group">
+                <label>Phone (WhatsApp):</label>
+                <input type="text" id="phone" value="212639383709" required>
+            </div>
+
+            <div class="form-group">
+                <label>Address:</label>
+                <input type="text" id="address" value="Rue Mohammed V, Casablanca" required>
+            </div>
+
+            <div class="form-group">
+                <label>City:</label>
+                <input type="text" id="city" value="Casablanca" required>
+            </div>
+
+            <div class="form-group">
+                <label>Payment Method:</label>
+                <select id="method_payment" required>
+                    <option value="cash_on_delivery">Cash on Delivery</option>
+                    <option value="bank_transfer">Bank Transfer</option>
+                </select>
+            </div>
+
+            <button type="submit">📱 Create Order & Send WhatsApp</button>
+        </form>
+
+        <div id="result" style="display: none;"></div>
+    </div>
+
+    <script>
+        document.getElementById('orderForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const orderData = {
+                products_id: parseInt(document.getElementById('products_id').value),
+                client_name: document.getElementById('client_name').value,
+                client_lastname: document.getElementById('client_lastname').value,
+                email: document.getElementById('email').value,
+                phone: document.getElementById('phone').value,
+                address: document.getElementById('address').value,
+                city: document.getElementById('city').value,
+                method_payment: document.getElementById('method_payment').value
+            };
+            
+            console.log('Sending order data:', orderData);
+            
+            const resultDiv = document.getElementById('result');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result info';
+            resultDiv.textContent = '🔄 Creating order and sending WhatsApp message...';
+            
+            try {
+                const response = await fetch('http://localhost:8001/api/orders', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(orderData)
+                });
+                
+                console.log('Response status:', response.status);
+                
+                const data = await response.json();
+                console.log('Response data:', data);
+                
+                if (response.ok && data.success) {
+                    resultDiv.className = 'result success';
+                    resultDiv.textContent = 
+                        `✅ SUCCESS! Order created and WhatsApp sent!\n\n` +
+                        `📦 Order ID: ${data.data?.order_id || 'N/A'}\n` +
+                        `📋 Order Number: ${data.data?.order_number || 'N/A'}\n` +
+                        `👤 Customer: ${orderData.client_name} ${orderData.client_lastname}\n` +
+                        `📱 WhatsApp sent to: ${orderData.phone}\n` +
+                        `💰 Payment: ${orderData.method_payment}\n\n` +
+                        `🎉 Check your WhatsApp for the confirmation message!`;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent = 
+                        `❌ ERROR: ${data.message || 'Unknown error'}\n\n` +
+                        `Details: ${JSON.stringify(data.errors || data, null, 2)}`;
+                }
+                
+            } catch (error) {
+                console.error('Network error:', error);
+                resultDiv.className = 'result error';
+                resultDiv.textContent = 
+                    `❌ Network Error: ${error.message}\n\n` +
+                    `Make sure the Laravel server is running on port 8001.`;
+            }
+        });
+    </script>
+</body>
+</html>

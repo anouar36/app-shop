@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>🔐 Admin Auth & Image Upload Debug</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }
+        .result { margin-top: 10px; padding: 10px; border-radius: 4px; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        input, textarea { margin: 5px; padding: 8px; width: 300px; }
+        .token-info { background: #f8f9fa; padding: 10px; border-radius: 4px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>🔐 Admin Authentication & Image Upload Debug</h1>
+    
+    <div class="section">
+        <h2>1. Test Admin Login</h2>
+        <div>
+            <label>Email: </label>
+            <input type="email" id="adminEmail" value="admin@admin.com" placeholder="Admin email">
+        </div>
+        <div>
+            <label>Password: </label>
+            <input type="password" id="adminPassword" value="admin123" placeholder="Admin password">
+        </div>
+        <button onclick="testAdminLogin()">Login as Admin</button>
+        <div id="loginResult"></div>
+        <div id="tokenInfo" class="token-info" style="display: none;"></div>
+    </div>
+
+    <div class="section">
+        <h2>2. Test Current Token</h2>
+        <button onclick="testCurrentToken()">Test Stored Token</button>
+        <button onclick="clearToken()">Clear Token</button>
+        <div id="tokenTestResult"></div>
+    </div>
+
+    <div class="section">
+        <h2>3. Test Product Update WITHOUT Images (Auth Test)</h2>
+        <div>
+            <label>Product ID: </label>
+            <input type="number" id="testProductId" value="1" placeholder="Enter product ID">
+        </div>
+        <button onclick="testProductUpdateNoImages()">Update Product (Text Only)</button>
+        <div id="updateNoImagesResult"></div>
+    </div>
+
+    <div class="section">
+        <h2>4. Test Product Update WITH Images (Full Test)</h2>
+        <div>
+            <label>Product ID: </label>
+            <input type="number" id="imageTestProductId" value="1" placeholder="Enter product ID">
+        </div>
+        <div>
+            <label>Images: </label>
+            <input type="file" id="testImages" accept="image/*" multiple>
+        </div>
+        <button onclick="testProductUpdateWithImages()">Update Product with Images</button>
+        <div id="updateWithImagesResult"></div>
+    </div>
+
+    <div class="section">
+        <h2>5. Test Image Upload to Public Product Route</h2>
+        <p class="info">Testing if the issue is with auth or with the image upload itself.</p>
+        <form id="publicTestForm">
+            <div>
+                <label>Product Name: </label>
+                <input type="text" name="name" value="Debug Public Test" required>
+            </div>
+            <div>
+                <label>Category ID: </label>
+                <input type="number" name="category_id" value="1" required>
+            </div>
+            <div>
+                <label>Price: </label>
+                <input type="number" name="price" value="9.99" step="0.01" required>
+            </div>
+            <div>
+                <label>Sale Price: </label>
+                <input type="number" name="current_price" value="7.99" step="0.01" required>
+            </div>
+            <div>
+                <label>Description: </label>
+                <textarea name="description" required>Debug test for public image upload</textarea>
+            </div>
+            <div>
+                <label>Images: </label>
+                <input type="file" name="images" accept="image/*" multiple>
+            </div>
+            <button type="submit">Create Product (Public Route)</button>
+        </form>
+        <div id="publicTestResult"></div>
+    </div>
+
+    <div class="section">
+        <h2>6. Debug Log</h2>
+        <div id="debugLog" style="background: #f8f9fa; padding: 10px; border-radius: 4px; max-height: 300px; overflow-y: auto; font-family: monospace; font-size: 12px;"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://127.0.0.1:8001/api';
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const debugLog = document.getElementById('debugLog');
+            const logEntry = `[${timestamp}] [${type.toUpperCase()}] ${message}\n`;
+            debugLog.innerHTML += logEntry;
+            debugLog.scrollTop = debugLog.scrollHeight;
+            console.log(logEntry);
+        }
+
+        function showResult(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="${type}">${message}</div>`;
+        }
+
+        async function testAdminLogin() {
+            const email = document.getElementById('adminEmail').value;
+            const password = document.getElementById('adminPassword').value;
+            
+            showResult('loginResult', 'Attempting admin login...', 'info');
+            log(`Attempting admin login with email: ${email}`);
+            
+            try {
+                const response = await fetch(`${API_BASE}/admin/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    localStorage.setItem('admin_token', data.access_token);
+                    
+                    showResult('loginResult', `✅ Login successful! Token saved.`, 'success');
+                    document.getElementById('tokenInfo').style.display = 'block';
+                    document.getElementById('tokenInfo').innerHTML = `
+                        <strong>Token:</strong> ${data.access_token.substring(0, 20)}...<br>
+                        <strong>User:</strong> ${data.user.name} (${data.user.email})<br>
+                        <strong>Role:</strong> ${data.user.role}
+                    `;
+                    log(`Login successful - Token: ${data.access_token.substring(0, 20)}...`, 'success');
+                } else {
+                    const error = await response.text();
+                    showResult('loginResult', `❌ Login failed: ${response.status} - ${error}`, 'error');
+                    log(`Login failed: ${response.status} - ${error}`, 'error');
+                }
+            } catch (error) {
+                showResult('loginResult', `❌ Network error: ${error.message}`, 'error');
+                log(`Login network error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testCurrentToken() {
+            const token = localStorage.getItem('admin_token');
+            
+            if (!token) {
+                showResult('tokenTestResult', '❌ No token found in localStorage', 'error');
+                log('No admin token found', 'error');
+                return;
+            }
+            
+            showResult('tokenTestResult', 'Testing current token...', 'info');
+            log(`Testing token: ${token.substring(0, 20)}...`);
+            
+            try {
+                const response = await fetch(`${API_BASE}/user`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const user = await response.json();
+                    showResult('tokenTestResult', `✅ Token valid! User: ${user.name} (${user.email})`, 'success');
+                    log(`Token valid - User: ${user.name}`, 'success');
+                } else {
+                    showResult('tokenTestResult', `❌ Token invalid: ${response.status}`, 'error');
+                    log(`Token invalid: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                showResult('tokenTestResult', `❌ Token test error: ${error.message}`, 'error');
+                log(`Token test error: ${error.message}`, 'error');
+            }
+        }
+
+        function clearToken() {
+            localStorage.removeItem('admin_token');
+            showResult('tokenTestResult', '🗑️ Token cleared from localStorage', 'warning');
+            document.getElementById('tokenInfo').style.display = 'none';
+            log('Admin token cleared', 'warning');
+        }
+
+        async function testProductUpdateNoImages() {
+            const token = localStorage.getItem('admin_token');
+            const productId = document.getElementById('testProductId').value;
+            
+            if (!token) {
+                showResult('updateNoImagesResult', '❌ Please login first', 'error');
+                return;
+            }
+            
+            if (!productId) {
+                showResult('updateNoImagesResult', '❌ Please enter product ID', 'error');
+                return;
+            }
+            
+            showResult('updateNoImagesResult', 'Testing product update without images...', 'info');
+            log(`Testing product ${productId} update without images`);
+            
+            try {
+                const response = await fetch(`${API_BASE}/products/${productId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: 'Debug Test Product - Updated',
+                        description: 'This is a debug test update without images'
+                    })
+                });
+                
+                if (response.ok) {
+                    const product = await response.json();
+                    showResult('updateNoImagesResult', `✅ Product updated successfully! Name: ${product.name}`, 'success');
+                    log(`Product ${productId} updated successfully`, 'success');
+                } else {
+                    const error = await response.text();
+                    showResult('updateNoImagesResult', `❌ Update failed: ${response.status} - ${error}`, 'error');
+                    log(`Product update failed: ${response.status} - ${error}`, 'error');
+                }
+            } catch (error) {
+                showResult('updateNoImagesResult', `❌ Update error: ${error.message}`, 'error');
+                log(`Product update error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testProductUpdateWithImages() {
+            const token = localStorage.getItem('admin_token');
+            const productId = document.getElementById('imageTestProductId').value;
+            const filesInput = document.getElementById('testImages');
+            
+            if (!token) {
+                showResult('updateWithImagesResult', '❌ Please login first', 'error');
+                return;
+            }
+            
+            if (!productId) {
+                showResult('updateWithImagesResult', '❌ Please enter product ID', 'error');
+                return;
+            }
+            
+            if (!filesInput.files.length) {
+                showResult('updateWithImagesResult', '❌ Please select images', 'error');
+                return;
+            }
+            
+            showResult('updateWithImagesResult', 'Testing product update with images...', 'info');
+            log(`Testing product ${productId} update with ${filesInput.files.length} images`);
+            
+            try {
+                const formData = new FormData();
+                formData.append('name', 'Debug Test Product - With Images');
+                formData.append('description', 'This is a debug test update WITH images');
+                
+                for (let i = 0; i < filesInput.files.length; i++) {
+                    formData.append('images[]', filesInput.files[i]);
+                    log(`Adding image: ${filesInput.files[i].name} (${filesInput.files[i].size} bytes)`);
+                }
+                
+                const response = await fetch(`${API_BASE}/products/${productId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                        // Don't set Content-Type for FormData
+                    },
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    const product = await response.json();
+                    showResult('updateWithImagesResult', `✅ Product with images updated successfully!<br>Images: ${JSON.stringify(product.images)}`, 'success');
+                    log(`Product ${productId} updated with images successfully`, 'success');
+                } else {
+                    const error = await response.text();
+                    showResult('updateWithImagesResult', `❌ Update with images failed: ${response.status} - ${error}`, 'error');
+                    log(`Product update with images failed: ${response.status} - ${error}`, 'error');
+                }
+            } catch (error) {
+                showResult('updateWithImagesResult', `❌ Update with images error: ${error.message}`, 'error');
+                log(`Product update with images error: ${error.message}`, 'error');
+            }
+        }
+
+        // Test public product creation (should work without auth)
+        document.getElementById('publicTestForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            showResult('publicTestResult', 'Testing public product creation with images...', 'info');
+            log('Testing public product creation');
+            
+            try {
+                const formData = new FormData(e.target);
+                const files = e.target.elements.images.files;
+                
+                // Clear existing images and add as array
+                formData.delete('images');
+                for (let i = 0; i < files.length; i++) {
+                    formData.append('images[]', files[i]);
+                    log(`Adding public image: ${files[i].name}`);
+                }
+                
+                const response = await fetch(`${API_BASE}/products`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    const product = await response.json();
+                    showResult('publicTestResult', `✅ Public product created successfully! ID: ${product.id}<br>Images: ${JSON.stringify(product.images)}`, 'success');
+                    log(`Public product created: ID ${product.id}`, 'success');
+                } else {
+                    const error = await response.text();
+                    showResult('publicTestResult', `❌ Public creation failed: ${response.status} - ${error}`, 'error');
+                    log(`Public product creation failed: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                showResult('publicTestResult', `❌ Public creation error: ${error.message}`, 'error');
+                log(`Public product creation error: ${error.message}`, 'error');
+            }
+        });
+
+        // Initialize
+        window.onload = function() {
+            log('🔐 Admin Auth & Image Upload Debug Tool initialized', 'info');
+            testCurrentToken(); // Check if there's already a token
+        };
+    </script>
+</body>
+</html>

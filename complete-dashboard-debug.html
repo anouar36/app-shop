@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>🎯 Complete Dashboard Image Upload Debug</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; background: white; }
+        .result { margin-top: 10px; padding: 10px; border-radius: 4px; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        button { padding: 12px 24px; margin: 5px; cursor: pointer; border: none; border-radius: 4px; font-weight: bold; }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn-warning { background: #ffc107; color: black; }
+        input, select, textarea { margin: 5px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        .debug-log { background: #272822; color: #f8f8f2; padding: 15px; border-radius: 4px; font-family: monospace; font-size: 12px; max-height: 400px; overflow-y: auto; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .image-preview { display: flex; flex-wrap: wrap; gap: 10px; margin: 10px 0; }
+        .image-preview img { width: 80px; height: 80px; object-fit: cover; border: 1px solid #ddd; border-radius: 4px; }
+        .step { margin: 10px 0; padding: 15px; border-left: 4px solid #007bff; background: #f8f9fa; }
+        .alert { padding: 15px; margin: 10px 0; border-radius: 4px; font-weight: bold; }
+        .alert-danger { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .alert-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        @media (max-width: 768px) { .grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Complete Dashboard Image Upload Debug</h1>
+        <p class="info">This simulates the exact dashboard workflow and identifies where the upload fails.</p>
+
+        <div class="alert alert-danger">
+            <strong>🚨 ISSUE:</strong> Backend logs show "has_files":false - Images are not reaching the server!<br>
+            <strong>🔍 INVESTIGATION:</strong> Testing complete form state management and API communication.
+        </div>
+
+        <div class="grid">
+            <!-- Left Column -->
+            <div>
+                <div class="section">
+                    <h2>🔐 Step 1: Authentication Setup</h2>
+                    <div class="step">Login as admin and verify token is stored correctly</div>
+                    <div>
+                        <label>Email:</label>
+                        <input type="email" id="email" value="admin@admin.com" style="width: 200px;">
+                    </div>
+                    <div>
+                        <label>Password:</label>
+                        <input type="password" id="password" value="admin123" style="width: 200px;">
+                    </div>
+                    <button class="btn-primary" onclick="step1_login()">🔑 Login & Verify</button>
+                    <div id="step1Result"></div>
+                </div>
+
+                <div class="section">
+                    <h2>📦 Step 2: Load Product Data</h2>
+                    <div class="step">Load existing product to simulate edit modal opening</div>
+                    <div>
+                        <label>Product ID:</label>
+                        <input type="number" id="productId" value="1" style="width: 100px;">
+                        <button class="btn-success" onclick="step2_loadProduct()">📂 Load Product</button>
+                    </div>
+                    <div id="step2Result"></div>
+                    <div id="productData" style="background: #f8f9fa; padding: 10px; border-radius: 4px; margin: 10px 0; font-family: monospace; font-size: 12px;"></div>
+                </div>
+
+                <div class="section">
+                    <h2>🖼️ Step 3: Image Selection</h2>
+                    <div class="step">Select images and verify they're stored in form state</div>
+                    <div>
+                        <label>Select Images:</label>
+                        <input type="file" id="imageFiles" accept="image/*" multiple onchange="step3_selectImages(this)">
+                    </div>
+                    <div id="step3Result"></div>
+                    <div id="imagePreview" class="image-preview"></div>
+                    <div id="imageDetails" style="background: #f8f9fa; padding: 10px; border-radius: 4px; margin: 10px 0; font-family: monospace; font-size: 12px;"></div>
+                </div>
+            </div>
+
+            <!-- Right Column -->
+            <div>
+                <div class="section">
+                    <h2>🚀 Step 4: FormData Construction</h2>
+                    <div class="step">Build FormData exactly like dashboard and verify contents</div>
+                    <button class="btn-primary" onclick="step4_buildFormData()">🔧 Build FormData</button>
+                    <div id="step4Result"></div>
+                    <div id="formDataDetails" style="background: #f8f9fa; padding: 10px; border-radius: 4px; margin: 10px 0; font-family: monospace; font-size: 12px;"></div>
+                </div>
+
+                <div class="section">
+                    <h2>📤 Step 5: API Request</h2>
+                    <div class="step">Send request and monitor backend response</div>
+                    <button class="btn-primary" onclick="step5_sendRequest()">📡 Send Request</button>
+                    <div id="step5Result"></div>
+                </div>
+
+                <div class="section">
+                    <h2>✅ Step 6: Verification</h2>
+                    <div class="step">Verify images were saved and are accessible</div>
+                    <button class="btn-success" onclick="step6_verify()">🔍 Verify Upload</button>
+                    <div id="step6Result"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>📋 Complete Debug Log</h2>
+            <button class="btn-danger" onclick="clearLog()">🗑️ Clear</button>
+            <button class="btn-warning" onclick="downloadLog()">💾 Download Log</button>
+            <div id="debugLog" class="debug-log"></div>
+        </div>
+
+        <div class="section">
+            <h2>📊 Test Summary</h2>
+            <div id="testSummary" class="step">
+                <strong>Status:</strong> Ready to test...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://127.0.0.1:8001/api';
+        let adminToken = null;
+        let selectedImages = [];
+        let productData = null;
+        let builtFormData = null;
+        
+        let testResults = {
+            login: false,
+            productLoad: false,
+            imageSelection: false,
+            formDataBuild: false,
+            apiRequest: false,
+            verification: false
+        };
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const debugLog = document.getElementById('debugLog');
+            const color = type === 'error' ? '#f87171' : type === 'success' ? '#4ade80' : type === 'warning' ? '#fbbf24' : '#60a5fa';
+            debugLog.innerHTML += `<div style="color: ${color};">[${timestamp}] [${type.toUpperCase()}] ${message}</div>`;
+            debugLog.scrollTop = debugLog.scrollHeight;
+            console.log(`[${timestamp}] [${type.toUpperCase()}] ${message}`);
+            updateTestSummary();
+        }
+
+        function showResult(elementId, message, type = 'info') {
+            document.getElementById(elementId).innerHTML = `<div class="${type}">${message}</div>`;
+        }
+
+        function updateTestSummary() {
+            const passed = Object.values(testResults).filter(r => r).length;
+            const total = Object.keys(testResults).length;
+            const summary = document.getElementById('testSummary');
+            
+            let statusText = '';
+            Object.entries(testResults).forEach(([key, value]) => {
+                statusText += `<strong>${key}:</strong> ${value ? '✅' : '❌'} | `;
+            });
+            
+            summary.innerHTML = `
+                <strong>Progress:</strong> ${passed}/${total} steps completed<br>
+                ${statusText}
+            `;
+        }
+
+        function clearLog() {
+            document.getElementById('debugLog').innerHTML = '';
+            log('🧹 Debug log cleared');
+        }
+
+        function downloadLog() {
+            const logContent = document.getElementById('debugLog').innerText;
+            const blob = new Blob([logContent], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `debug-log-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        async function step1_login() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            log(`🔐 STEP 1: Attempting admin login with ${email}`);
+            showResult('step1Result', '🔄 Logging in...', 'info');
+            
+            try {
+                const response = await fetch(`${API_BASE}/admin/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    adminToken = data.access_token;
+                    localStorage.setItem('admin_token', adminToken);
+                    
+                    testResults.login = true;
+                    log(`✅ Login successful! Token: ${adminToken.substring(0, 20)}...`, 'success');
+                    showResult('step1Result', `✅ Login successful! Welcome ${data.user.name}`, 'success');
+                    
+                    // Verify token immediately
+                    const verifyResponse = await fetch(`${API_BASE}/user`, {
+                        headers: { 'Authorization': `Bearer ${adminToken}` }
+                    });
+                    if (verifyResponse.ok) {
+                        const user = await verifyResponse.json();
+                        log(`🔐 Token verified - User: ${user.name} (${user.email})`, 'success');
+                    }
+                } else {
+                    const error = await response.text();
+                    testResults.login = false;
+                    log(`❌ Login failed: ${response.status} - ${error}`, 'error');
+                    showResult('step1Result', `❌ Login failed: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                testResults.login = false;
+                log(`💥 Login error: ${error.message}`, 'error');
+                showResult('step1Result', `❌ Network error: ${error.message}`, 'error');
+            }
+        }
+
+        async function step2_loadProduct() {
+            const productId = document.getElementById('productId').value;
+            if (!productId) {
+                showResult('step2Result', '❌ Please enter product ID', 'error');
+                return;
+            }
+            
+            log(`📦 STEP 2: Loading product data for ID ${productId}`);
+            showResult('step2Result', '🔄 Loading product...', 'info');
+            
+            try {
+                const response = await fetch(`${API_BASE}/products`);
+                if (response.ok) {
+                    const products = await response.json();
+                    productData = products.find(p => p.id == productId);
+                    
+                    if (productData) {
+                        testResults.productLoad = true;
+                        log(`✅ Product loaded successfully: ${productData.name}`, 'success');
+                        log(`📊 Product details: ID=${productData.id}, Name="${productData.name}", Images=${productData.images ? productData.images.length : 0}`, 'info');
+                        
+                        showResult('step2Result', `✅ Product loaded: ${productData.name}`, 'success');
+                        document.getElementById('productData').innerHTML = `
+                            <strong>Product Data:</strong><br>
+                            ID: ${productData.id}<br>
+                            Name: ${productData.name}<br>
+                            Category: ${productData.category_id}<br>
+                            Price: $${productData.price}<br>
+                            Current Images: ${productData.images ? productData.images.length : 0}<br>
+                            Image Paths: ${JSON.stringify(productData.images)}
+                        `;
+                    } else {
+                        testResults.productLoad = false;
+                        log(`❌ Product not found: ${productId}`, 'error');
+                        showResult('step2Result', `❌ Product ${productId} not found`, 'error');
+                    }
+                } else {
+                    testResults.productLoad = false;
+                    log(`❌ Failed to fetch products: ${response.status}`, 'error');
+                    showResult('step2Result', `❌ Failed to fetch products`, 'error');
+                }
+            } catch (error) {
+                testResults.productLoad = false;
+                log(`💥 Product load error: ${error.message}`, 'error');
+                showResult('step2Result', `❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        function step3_selectImages(input) {
+            selectedImages = Array.from(input.files);
+            
+            log(`🖼️ STEP 3: Images selected - Count: ${selectedImages.length}`);
+            
+            if (selectedImages.length > 0) {
+                testResults.imageSelection = true;
+                
+                const previewDiv = document.getElementById('imagePreview');
+                previewDiv.innerHTML = '';
+                
+                let imageDetailsHtml = '<strong>Selected Images:</strong><br>';
+                
+                selectedImages.forEach((file, index) => {
+                    log(`📸 Image ${index + 1}: ${file.name} (${file.size} bytes, ${file.type})`, 'info');
+                    
+                    // Create preview
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const img = document.createElement('img');
+                        img.src = e.target.result;
+                        img.title = file.name;
+                        previewDiv.appendChild(img);
+                    };
+                    reader.readAsDataURL(file);
+                    
+                    imageDetailsHtml += `${index + 1}. ${file.name} (${file.size} bytes, ${file.type})<br>`;
+                });
+                
+                document.getElementById('imageDetails').innerHTML = imageDetailsHtml;
+                showResult('step3Result', `✅ ${selectedImages.length} images selected successfully`, 'success');
+                log(`✅ Image selection completed successfully`, 'success');
+            } else {
+                testResults.imageSelection = false;
+                showResult('step3Result', '❌ No images selected', 'error');
+            }
+        }
+
+        function step4_buildFormData() {
+            if (!productData) {
+                showResult('step4Result', '❌ Please load product data first', 'error');
+                return;
+            }
+            
+            if (selectedImages.length === 0) {
+                showResult('step4Result', '❌ Please select images first', 'error');
+                return;
+            }
+            
+            log(`🔧 STEP 4: Building FormData exactly like dashboard`);
+            showResult('step4Result', '🔄 Building FormData...', 'info');
+            
+            try {
+                // Build FormData exactly like the dashboard
+                builtFormData = new FormData();
+                builtFormData.append('name', productData.name);
+                builtFormData.append('category_id', parseInt(productData.category_id));
+                builtFormData.append('price', parseFloat(productData.price));
+                builtFormData.append('current_price', parseFloat(productData.current_price));
+                builtFormData.append('description', productData.description);
+                builtFormData.append('size', productData.size || '');
+                builtFormData.append('status', productData.status || 'active');
+                
+                // Add images exactly like dashboard
+                selectedImages.forEach((img, idx) => {
+                    builtFormData.append('images[]', img);
+                    log(`📸 Added to FormData: images[${idx}] = ${img.name} (${img.size} bytes)`, 'info');
+                });
+                
+                // Verify FormData contents
+                let formDataHtml = '<strong>FormData Contents:</strong><br>';
+                let totalEntries = 0;
+                let imageEntries = 0;
+                
+                for (let [key, value] of builtFormData.entries()) {
+                    totalEntries++;
+                    if (key.startsWith('images')) {
+                        imageEntries++;
+                        formDataHtml += `${key}: FILE(${value.name}, ${value.size} bytes)<br>`;
+                        log(`📋 FormData entry: ${key} = FILE(${value.name}, ${value.size} bytes)`, 'info');
+                    } else {
+                        formDataHtml += `${key}: ${value}<br>`;
+                        log(`📋 FormData entry: ${key} = ${value}`, 'info');
+                    }
+                }
+                
+                document.getElementById('formDataDetails').innerHTML = formDataHtml + `<br><strong>Summary:</strong> ${totalEntries} total entries, ${imageEntries} image files`;
+                
+                if (imageEntries === selectedImages.length) {
+                    testResults.formDataBuild = true;
+                    log(`✅ FormData built successfully - ${totalEntries} entries, ${imageEntries} images`, 'success');
+                    showResult('step4Result', `✅ FormData built successfully! ${imageEntries} images ready`, 'success');
+                } else {
+                    testResults.formDataBuild = false;
+                    log(`❌ FormData build error - Expected ${selectedImages.length} images, got ${imageEntries}`, 'error');
+                    showResult('step4Result', `❌ FormData error: Expected ${selectedImages.length} images, got ${imageEntries}`, 'error');
+                }
+                
+            } catch (error) {
+                testResults.formDataBuild = false;
+                log(`💥 FormData build error: ${error.message}`, 'error');
+                showResult('step4Result', `❌ Build error: ${error.message}`, 'error');
+            }
+        }
+
+        async function step5_sendRequest() {
+            if (!adminToken) {
+                showResult('step5Result', '❌ Please login first', 'error');
+                return;
+            }
+            
+            if (!builtFormData) {
+                showResult('step5Result', '❌ Please build FormData first', 'error');
+                return;
+            }
+            
+            const productId = document.getElementById('productId').value;
+            
+            log(`📤 STEP 5: Sending API request to update product ${productId}`);
+            showResult('step5Result', '🔄 Sending request...', 'info');
+            
+            try {
+                log(`🌐 Request URL: ${API_BASE}/products/${productId}`);
+                log(`🔑 Authorization: Bearer ${adminToken.substring(0, 20)}...`);
+                log(`📦 Request method: PUT`);
+                log(`📄 Content-Type: multipart/form-data (auto-set by browser)`);
+                
+                const response = await fetch(`${API_BASE}/products/${productId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${adminToken}`
+                        // DON'T set Content-Type for FormData
+                    },
+                    body: builtFormData
+                });
+                
+                log(`📥 Response status: ${response.status} ${response.statusText}`);
+                log(`📄 Response headers: ${JSON.stringify(Object.fromEntries(response.headers.entries()))}`);
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    testResults.apiRequest = true;
+                    
+                    log(`✅ API request successful!`, 'success');
+                    log(`📊 Response data: ${JSON.stringify(result, null, 2)}`, 'success');
+                    
+                    showResult('step5Result', `
+                        ✅ Request successful!<br>
+                        <strong>Product ID:</strong> ${result.id}<br>
+                        <strong>Updated Images:</strong> ${result.images ? result.images.length : 0}<br>
+                        <strong>Image Paths:</strong> ${JSON.stringify(result.images)}
+                    `, 'success');
+                } else {
+                    const errorText = await response.text();
+                    testResults.apiRequest = false;
+                    log(`❌ API request failed: ${response.status} - ${errorText}`, 'error');
+                    showResult('step5Result', `❌ Request failed: ${response.status}<br>${errorText}`, 'error');
+                }
+                
+            } catch (error) {
+                testResults.apiRequest = false;
+                log(`💥 API request error: ${error.message}`, 'error');
+                showResult('step5Result', `❌ Request error: ${error.message}`, 'error');
+            }
+        }
+
+        async function step6_verify() {
+            const productId = document.getElementById('productId').value;
+            
+            log(`🔍 STEP 6: Verifying upload success for product ${productId}`);
+            showResult('step6Result', '🔄 Verifying...', 'info');
+            
+            try {
+                // Get updated product data
+                const response = await fetch(`${API_BASE}/products`);
+                if (response.ok) {
+                    const products = await response.json();
+                    const updatedProduct = products.find(p => p.id == productId);
+                    
+                    if (updatedProduct && updatedProduct.images && updatedProduct.images.length > 0) {
+                        log(`📊 Updated product has ${updatedProduct.images.length} images`, 'success');
+                        
+                        // Test image accessibility
+                        let accessibleImages = 0;
+                        let verificationHtml = '<strong>Image Verification:</strong><br>';
+                        
+                        for (const imagePath of updatedProduct.images) {
+                            try {
+                                const imageUrl = `http://127.0.0.1:8001/${imagePath}`;
+                                const imageResponse = await fetch(imageUrl);
+                                
+                                if (imageResponse.ok) {
+                                    accessibleImages++;
+                                    verificationHtml += `✅ ${imagePath} - Accessible<br>`;
+                                    log(`✅ Image accessible: ${imagePath}`, 'success');
+                                } else {
+                                    verificationHtml += `❌ ${imagePath} - Not accessible (${imageResponse.status})<br>`;
+                                    log(`❌ Image not accessible: ${imagePath} (${imageResponse.status})`, 'error');
+                                }
+                            } catch (e) {
+                                verificationHtml += `❌ ${imagePath} - Error: ${e.message}<br>`;
+                                log(`❌ Image check error: ${imagePath} - ${e.message}`, 'error');
+                            }
+                        }
+                        
+                        if (accessibleImages === updatedProduct.images.length) {
+                            testResults.verification = true;
+                            showResult('step6Result', `
+                                ✅ Verification successful!<br>
+                                <strong>Total Images:</strong> ${updatedProduct.images.length}<br>
+                                <strong>Accessible:</strong> ${accessibleImages}<br>
+                                ${verificationHtml}
+                            `, 'success');
+                            log(`✅ All ${accessibleImages} images verified successfully!`, 'success');
+                        } else {
+                            testResults.verification = false;
+                            showResult('step6Result', `
+                                ⚠️ Partial verification!<br>
+                                <strong>Total Images:</strong> ${updatedProduct.images.length}<br>
+                                <strong>Accessible:</strong> ${accessibleImages}<br>
+                                ${verificationHtml}
+                            `, 'warning');
+                        }
+                    } else {
+                        testResults.verification = false;
+                        log(`❌ No images found in updated product`, 'error');
+                        showResult('step6Result', '❌ No images found in updated product', 'error');
+                    }
+                }
+            } catch (error) {
+                testResults.verification = false;
+                log(`💥 Verification error: ${error.message}`, 'error');
+                showResult('step6Result', `❌ Verification error: ${error.message}`, 'error');
+            }
+        }
+
+        // Initialize
+        window.onload = function() {
+            log('🎯 Complete Dashboard Image Upload Debug Tool initialized');
+            
+            // Check existing token
+            const existingToken = localStorage.getItem('admin_token');
+            if (existingToken) {
+                adminToken = existingToken;
+                testResults.login = true;
+                log(`🔑 Found existing token: ${existingToken.substring(0, 20)}...`);
+                showResult('step1Result', '✅ Token found in localStorage', 'success');
+            }
+            
+            updateTestSummary();
+        };
+    </script>
+</body>
+</html>

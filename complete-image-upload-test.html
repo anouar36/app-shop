@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>🎯 Complete Image Upload Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; background: white; }
+        .result { margin-top: 10px; padding: 10px; border-radius: 4px; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        button { padding: 12px 24px; margin: 5px; cursor: pointer; border: none; border-radius: 4px; font-weight: bold; }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-warning { background: #ffc107; color: black; }
+        .btn-danger { background: #dc3545; color: white; }
+        input, textarea, select { margin: 5px; padding: 8px; width: 300px; border: 1px solid #ddd; border-radius: 4px; }
+        .flow-step { margin: 10px 0; padding: 15px; border-left: 4px solid #007bff; background: #f8f9fa; }
+        .debug-section { background: #272822; color: #f8f8f2; padding: 15px; border-radius: 4px; font-family: monospace; font-size: 12px; overflow-x: auto; max-height: 300px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media (max-width: 768px) { .grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Complete Image Upload Test Pipeline</h1>
+        <p class="info">This tool tests the complete image upload workflow from frontend to backend.</p>
+
+        <div class="grid">
+            <!-- Left Column: Setup & Auth -->
+            <div>
+                <div class="section">
+                    <h2>🔐 Step 1: Authentication</h2>
+                    <div class="flow-step">
+                        <strong>Flow:</strong> Login → Get Token → Verify Admin Role → Test Permissions
+                    </div>
+                    
+                    <div>
+                        <label>Email: </label>
+                        <input type="email" id="adminEmail" value="admin@admin.com">
+                    </div>
+                    <div>
+                        <label>Password: </label>
+                        <input type="password" id="adminPassword" value="admin123">
+                    </div>
+                    <button class="btn-primary" onclick="performLogin()">🔑 Login & Get Token</button>
+                    <div id="loginResult"></div>
+                </div>
+
+                <div class="section">
+                    <h2>📦 Step 2: Test Product Creation</h2>
+                    <p class="info">First create a test product to ensure the system is working.</p>
+                    <button class="btn-success" onclick="createTestProduct()">➕ Create Test Product</button>
+                    <div id="createResult"></div>
+                </div>
+            </div>
+
+            <!-- Right Column: Image Upload Tests -->
+            <div>
+                <div class="section">
+                    <h2>🖼️ Step 3: Image Upload Test</h2>
+                    <div class="flow-step">
+                        <strong>Flow:</strong> Select Product → Upload Images → Verify Storage → Check Display
+                    </div>
+                    
+                    <div>
+                        <label>Product ID: </label>
+                        <input type="number" id="testProductId" value="">
+                        <button class="btn-warning" onclick="loadProducts()">🔄 Load Products</button>
+                    </div>
+                    <div>
+                        <label>Test Images: </label>
+                        <input type="file" id="testImages" accept="image/*" multiple>
+                    </div>
+                    <button class="btn-primary" onclick="testImageUpload()">🚀 Upload Images</button>
+                    <div id="uploadResult"></div>
+                </div>
+
+                <div class="section">
+                    <h2>✅ Step 4: Verification</h2>
+                    <button class="btn-success" onclick="verifyImageStorage()">🔍 Verify Image Storage</button>
+                    <button class="btn-primary" onclick="testImageDisplay()">👁️ Test Image Display</button>
+                    <div id="verifyResult"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>📊 Real-time Debug Log</h2>
+            <button class="btn-danger" onclick="clearDebugLog()">🗑️ Clear Log</button>
+            <div id="debugLog" class="debug-section"></div>
+        </div>
+
+        <div class="section">
+            <h2>📋 Test Results Summary</h2>
+            <div id="testSummary" class="flow-step">
+                <strong>Status:</strong> Ready to test...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://127.0.0.1:8001/api';
+        let currentToken = null;
+        let testResults = {
+            auth: false,
+            productCreation: false,
+            imageUpload: false,
+            imageStorage: false,
+            imageDisplay: false
+        };
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const debugLog = document.getElementById('debugLog');
+            const logEntry = `<div style="color: ${getLogColor(type)};">[${timestamp}] [${type.toUpperCase()}] ${message}</div>`;
+            debugLog.innerHTML += logEntry;
+            debugLog.scrollTop = debugLog.scrollHeight;
+            console.log(`[${timestamp}] [${type.toUpperCase()}] ${message}`);
+            updateTestSummary();
+        }
+
+        function getLogColor(type) {
+            switch(type) {
+                case 'success': return '#4ade80';
+                case 'error': return '#f87171';
+                case 'warning': return '#fbbf24';
+                default: return '#60a5fa';
+            }
+        }
+
+        function showResult(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="${type}">${message}</div>`;
+        }
+
+        function updateTestSummary() {
+            const summary = document.getElementById('testSummary');
+            const passed = Object.values(testResults).filter(r => r).length;
+            const total = Object.keys(testResults).length;
+            
+            summary.innerHTML = `
+                <strong>Test Progress:</strong> ${passed}/${total} tests passed<br>
+                <strong>Auth:</strong> ${testResults.auth ? '✅' : '❌'} | 
+                <strong>Product Creation:</strong> ${testResults.productCreation ? '✅' : '❌'} | 
+                <strong>Image Upload:</strong> ${testResults.imageUpload ? '✅' : '❌'} | 
+                <strong>Storage:</strong> ${testResults.imageStorage ? '✅' : '❌'} | 
+                <strong>Display:</strong> ${testResults.imageDisplay ? '✅' : '❌'}
+            `;
+        }
+
+        function clearDebugLog() {
+            document.getElementById('debugLog').innerHTML = '';
+            log('Debug log cleared', 'info');
+        }
+
+        async function performLogin() {
+            const email = document.getElementById('adminEmail').value;
+            const password = document.getElementById('adminPassword').value;
+            
+            log(`🔐 Attempting login for: ${email}`);
+            showResult('loginResult', '🔄 Logging in...', 'info');
+            
+            try {
+                const response = await fetch(`${API_BASE}/admin/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    currentToken = data.access_token;
+                    localStorage.setItem('admin_token', currentToken);
+                    
+                    testResults.auth = true;
+                    log(`✅ Login successful - Token: ${currentToken.substring(0, 20)}...`, 'success');
+                    showResult('loginResult', `✅ Login successful! User: ${data.user.name} (${data.user.email})`, 'success');
+                } else {
+                    const error = await response.text();
+                    testResults.auth = false;
+                    log(`❌ Login failed: ${response.status} - ${error}`, 'error');
+                    showResult('loginResult', `❌ Login failed: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                testResults.auth = false;
+                log(`💥 Login error: ${error.message}`, 'error');
+                showResult('loginResult', `❌ Network error: ${error.message}`, 'error');
+            }
+        }
+
+        async function createTestProduct() {
+            if (!currentToken) {
+                showResult('createResult', '❌ Please login first', 'error');
+                return;
+            }
+            
+            log('📦 Creating test product...');
+            showResult('createResult', '🔄 Creating test product...', 'info');
+            
+            try {
+                const response = await fetch(`${API_BASE}/products`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: 'Image Upload Test Product',
+                        category_id: 1,
+                        price: 99.99,
+                        current_price: 79.99,
+                        description: 'Product created for testing image upload functionality',
+                        size: 'Test',
+                        status: 'active'
+                    })
+                });
+                
+                if (response.ok) {
+                    const product = await response.json();
+                    document.getElementById('testProductId').value = product.id;
+                    
+                    testResults.productCreation = true;
+                    log(`✅ Test product created successfully: ID ${product.id}`, 'success');
+                    showResult('createResult', `✅ Test product created! ID: ${product.id}`, 'success');
+                } else {
+                    const error = await response.text();
+                    testResults.productCreation = false;
+                    log(`❌ Product creation failed: ${response.status} - ${error}`, 'error');
+                    showResult('createResult', `❌ Creation failed: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                testResults.productCreation = false;
+                log(`💥 Product creation error: ${error.message}`, 'error');
+                showResult('createResult', `❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function loadProducts() {
+            log('📋 Loading available products...');
+            
+            try {
+                const response = await fetch(`${API_BASE}/products`);
+                if (response.ok) {
+                    const products = await response.json();
+                    log(`📋 Found ${products.length} products`);
+                    
+                    if (products.length > 0) {
+                        document.getElementById('testProductId').value = products[products.length - 1].id;
+                        log(`🎯 Auto-selected product ID: ${products[products.length - 1].id}`);
+                    }
+                } else {
+                    log(`❌ Failed to load products: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                log(`💥 Error loading products: ${error.message}`, 'error');
+            }
+        }
+
+        async function testImageUpload() {
+            const productId = document.getElementById('testProductId').value;
+            const filesInput = document.getElementById('testImages');
+            
+            if (!currentToken) {
+                showResult('uploadResult', '❌ Please login first', 'error');
+                return;
+            }
+            
+            if (!productId) {
+                showResult('uploadResult', '❌ Please enter/select product ID', 'error');
+                return;
+            }
+            
+            if (!filesInput.files.length) {
+                showResult('uploadResult', '❌ Please select images to upload', 'error');
+                return;
+            }
+            
+            log(`🖼️ Starting image upload for product ${productId}...`);
+            showResult('uploadResult', '🔄 Uploading images...', 'info');
+            
+            try {
+                const formData = new FormData();
+                formData.append('name', 'Updated Test Product with Images');
+                formData.append('description', 'Product updated with test images');
+                
+                // Add images
+                for (let i = 0; i < filesInput.files.length; i++) {
+                    formData.append('images[]', filesInput.files[i]);
+                    log(`📸 Adding image ${i + 1}: ${filesInput.files[i].name} (${filesInput.files[i].size} bytes)`);
+                }
+                
+                const response = await fetch(`${API_BASE}/products/${productId}`, {
+                    method: 'PUT',
+                    headers: { 'Authorization': `Bearer ${currentToken}` },
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    const product = await response.json();
+                    testResults.imageUpload = true;
+                    
+                    log(`✅ Images uploaded successfully! Product updated.`, 'success');
+                    log(`📊 Product images: ${JSON.stringify(product.images)}`, 'success');
+                    
+                    showResult('uploadResult', `
+                        ✅ Images uploaded successfully!<br>
+                        <strong>Product ID:</strong> ${product.id}<br>
+                        <strong>Images:</strong> ${product.images ? product.images.length : 0} files<br>
+                        <strong>Paths:</strong> ${JSON.stringify(product.images)}
+                    `, 'success');
+                } else {
+                    const error = await response.text();
+                    testResults.imageUpload = false;
+                    log(`❌ Image upload failed: ${response.status} - ${error}`, 'error');
+                    showResult('uploadResult', `❌ Upload failed: ${response.status} - ${error}`, 'error');
+                }
+            } catch (error) {
+                testResults.imageUpload = false;
+                log(`💥 Image upload error: ${error.message}`, 'error');
+                showResult('uploadResult', `❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function verifyImageStorage() {
+            const productId = document.getElementById('testProductId').value;
+            
+            if (!productId) {
+                showResult('verifyResult', '❌ Please enter product ID', 'error');
+                return;
+            }
+            
+            log(`🔍 Verifying image storage for product ${productId}...`);
+            showResult('verifyResult', '🔄 Verifying storage...', 'info');
+            
+            try {
+                // Get product data
+                const response = await fetch(`${API_BASE}/products`);
+                if (response.ok) {
+                    const products = await response.json();
+                    const product = products.find(p => p.id == productId);
+                    
+                    if (product && product.images && product.images.length > 0) {
+                        // Test if images are accessible
+                        let accessibleImages = 0;
+                        for (const imagePath of product.images) {
+                            try {
+                                const imageResponse = await fetch(`http://127.0.0.1:8001/${imagePath}`);
+                                if (imageResponse.ok) {
+                                    accessibleImages++;
+                                    log(`✅ Image accessible: ${imagePath}`, 'success');
+                                } else {
+                                    log(`❌ Image not accessible: ${imagePath} (${imageResponse.status})`, 'error');
+                                }
+                            } catch (e) {
+                                log(`❌ Image check error: ${imagePath} - ${e.message}`, 'error');
+                            }
+                        }
+                        
+                        if (accessibleImages === product.images.length) {
+                            testResults.imageStorage = true;
+                            showResult('verifyResult', `✅ All ${accessibleImages} images are accessible!`, 'success');
+                        } else {
+                            testResults.imageStorage = false;
+                            showResult('verifyResult', `⚠️ Only ${accessibleImages}/${product.images.length} images accessible`, 'warning');
+                        }
+                    } else {
+                        testResults.imageStorage = false;
+                        showResult('verifyResult', '❌ No images found for this product', 'error');
+                    }
+                } else {
+                    log(`❌ Failed to get product data: ${response.status}`, 'error');
+                    showResult('verifyResult', '❌ Failed to verify storage', 'error');
+                }
+            } catch (error) {
+                testResults.imageStorage = false;
+                log(`💥 Storage verification error: ${error.message}`, 'error');
+                showResult('verifyResult', `❌ Verification error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testImageDisplay() {
+            const productId = document.getElementById('testProductId').value;
+            
+            if (!productId) {
+                showResult('verifyResult', '❌ Please enter product ID', 'error');
+                return;
+            }
+            
+            log(`👁️ Testing image display for product ${productId}...`);
+            
+            try {
+                const response = await fetch(`${API_BASE}/products`);
+                if (response.ok) {
+                    const products = await response.json();
+                    const product = products.find(p => p.id == productId);
+                    
+                    if (product && product.images && product.images.length > 0) {
+                        let displayHtml = '<h4>📸 Product Images:</h4>';
+                        
+                        product.images.forEach((imagePath, index) => {
+                            displayHtml += `
+                                <div style="margin: 10px 0; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                                    <strong>Image ${index + 1}:</strong> ${imagePath}<br>
+                                    <img src="http://127.0.0.1:8001/${imagePath}" 
+                                         style="max-width: 200px; max-height: 150px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;"
+                                         onload="this.style.border='2px solid green';" 
+                                         onerror="this.style.border='2px solid red'; this.alt='❌ Failed to load';">
+                                </div>
+                            `;
+                        });
+                        
+                        testResults.imageDisplay = true;
+                        showResult('verifyResult', displayHtml, 'success');
+                        log(`✅ Image display test completed for ${product.images.length} images`, 'success');
+                    } else {
+                        testResults.imageDisplay = false;
+                        showResult('verifyResult', '❌ No images to display', 'error');
+                    }
+                }
+            } catch (error) {
+                testResults.imageDisplay = false;
+                log(`💥 Display test error: ${error.message}`, 'error');
+            }
+        }
+
+        // Initialize
+        window.onload = function() {
+            log('🎯 Complete Image Upload Test Pipeline initialized', 'info');
+            
+            // Check if there's already a token
+            const existingToken = localStorage.getItem('admin_token');
+            if (existingToken) {
+                currentToken = existingToken;
+                log(`🔑 Found existing token: ${existingToken.substring(0, 20)}...`, 'info');
+                testResults.auth = true;
+            }
+            
+            updateTestSummary();
+        };
+    </script>
+</body>
+</html>

@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\UserController;
 
 // Test route
 Route::get('/test', function () {                                                                                                                                        
@@ -229,6 +230,18 @@ Route::middleware(['auth:sanctum', 'admin'])->group(function () {
     Route::get('/admin/orders/statistics', [OrderController::class, 'statistics']);
     Route::put('/admin/orders/{order}/status', [OrderController::class, 'updateStatus']);
     
+    // Product management routes for admin
+    Route::put('/products/{product}', [ProductController::class, 'update']);
+    Route::post('/products/{product}', [ProductController::class, 'update']); // Handle method spoofing
+    Route::delete('/products/{product}', [ProductController::class, 'destroy']);
+    
+    // Enhanced Order Update Routes
+    Route::put('/admin/orders/{order}/customer-info', [OrderController::class, 'updateCustomerInfo']);
+    Route::put('/admin/orders/{order}/delivery-info', [OrderController::class, 'updateDeliveryInfo']);
+    Route::put('/admin/orders/{order}/product', [OrderController::class, 'updateOrderProduct']);
+    Route::put('/admin/orders/{order}/notes', [OrderController::class, 'updateOrderNotes']);
+    Route::get('/admin/orders/{order}/history', [OrderController::class, 'getOrderHistory']);
+    
     // Admin notification routes
     Route::get('/admin/notifications', [OrderController::class, 'getNotifications']);
     Route::get('/admin/notifications/unread-count', [OrderController::class, 'getUnreadCount']);
@@ -237,10 +250,18 @@ Route::middleware(['auth:sanctum', 'admin'])->group(function () {
     Route::delete('/admin/notifications/{notificationId}', [OrderController::class, 'deleteNotification']);
     
     Route::prefix('admin')->group(function () {
-        Route::get('/users', function () {
-            // Return all users with their roles and include phone information
-            return response()->json(\App\Models\User::with('role')->get());
-        });
+        // User/Customer Management Routes
+        Route::get('/users', [UserController::class, 'index']);
+        Route::post('/users', [UserController::class, 'store']);
+        Route::get('/users/{user}', [UserController::class, 'show']);
+        Route::put('/users/{user}', [UserController::class, 'update']);
+        Route::delete('/users/{user}', [UserController::class, 'destroy']);
+        Route::get('/roles', [UserController::class, 'getRoles']);
+        
+        // Customer routes (alias for users for frontend compatibility)
+        Route::put('/customers/{user}', [UserController::class, 'update']);
+        Route::get('/customers', [UserController::class, 'index']);
+        
         Route::get('/analytics', function () {
             return response()->json([
                 'recent_orders' => \App\Models\Order::latest()->take(5)->get(),

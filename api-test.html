@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .result { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        button { margin: 5px; padding: 8px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>🧪 API Test</h1>
+    
+    <button onclick="testAPI()">Test Products API</button>
+    <button onclick="createTestProduct()">Create Test Product</button>
+    
+    <div id="result"></div>
+    
+    <script>
+        const API_BASE = 'http://127.0.0.1:8001/api';
+        
+        async function testAPI() {
+            try {
+                console.log('Testing API...');
+                const response = await fetch(`${API_BASE}/products`);
+                console.log('Response status:', response.status);
+                
+                if (response.ok) {
+                    const products = await response.json();
+                    console.log('Products:', products);
+                    document.getElementById('result').innerHTML = `
+                        <div class="success">
+                            ✅ API Working! Found ${products.length} products<br>
+                            ${products.map(p => `ID: ${p.id}, Name: ${p.name}`).join('<br>')}
+                        </div>
+                    `;
+                } else {
+                    document.getElementById('result').innerHTML = `
+                        <div class="error">❌ API Error: ${response.status}</div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('result').innerHTML = `
+                    <div class="error">❌ Connection Error: ${error.message}</div>
+                `;
+            }
+        }
+        
+        async function createTestProduct() {
+            try {
+                const response = await fetch(`${API_BASE}/products`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: 'Test Product for Image Upload',
+                        category_id: 1,
+                        price: 29.99,
+                        current_price: 24.99,
+                        description: 'Test product for debugging image upload',
+                        size: 'M',
+                        status: 'active'
+                    })
+                });
+                
+                if (response.ok) {
+                    const product = await response.json();
+                    document.getElementById('result').innerHTML = `
+                        <div class="success">
+                            ✅ Test product created!<br>
+                            ID: ${product.id}<br>
+                            Name: ${product.name}
+                        </div>
+                    `;
+                } else {
+                    const error = await response.text();
+                    document.getElementById('result').innerHTML = `
+                        <div class="error">❌ Creation failed: ${response.status} - ${error}</div>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('result').innerHTML = `
+                    <div class="error">❌ Error: ${error.message}</div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Image Upload</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }
+        .result { margin-top: 10px; padding: 10px; border-radius: 4px; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        form { margin: 10px 0; }
+        input, textarea { margin: 5px; padding: 8px; }
+    </style>
+</head>
+<body>
+    <h1>🐛 Image Upload Debug Tool</h1>
+    
+    <div class="section">
+        <h2>1. Test Backend Connection</h2>
+        <button onclick="testConnection()">Test API Connection</button>
+        <div id="connectionResult"></div>
+    </div>
+
+    <div class="section">
+        <h2>2. Test Product Creation WITHOUT Images</h2>
+        <button onclick="testProductWithoutImage()">Create Test Product (No Images)</button>
+        <div id="productNoImageResult"></div>
+    </div>
+
+    <div class="section">
+        <h2>3. Test Product Creation WITH Images</h2>
+        <form id="imageTestForm">
+            <div>
+                <label>Product Name: </label>
+                <input type="text" name="name" value="Debug Test Product" required>
+            </div>
+            <div>
+                <label>Category ID: </label>
+                <input type="number" name="category_id" value="1" required>
+            </div>
+            <div>
+                <label>Price: </label>
+                <input type="number" name="price" value="25.99" step="0.01" required>
+            </div>
+            <div>
+                <label>Sale Price: </label>
+                <input type="number" name="current_price" value="19.99" step="0.01" required>
+            </div>
+            <div>
+                <label>Description: </label>
+                <textarea name="description" required>Debug test product with image upload</textarea>
+            </div>
+            <div>
+                <label>Size: </label>
+                <input type="text" name="size" value="M">
+            </div>
+            <div>
+                <label>Images (Multiple): </label>
+                <input type="file" name="images" accept="image/*" multiple>
+            </div>
+            <button type="submit">Create Product with Images</button>
+        </form>
+        <div id="imageTestResult"></div>
+    </div>
+
+    <div class="section">
+        <h2>4. Test Product UPDATE with Images</h2>
+        <div>
+            <label>Product ID to Update: </label>
+            <input type="number" id="updateProductId" value="1" placeholder="Enter existing product ID">
+        </div>
+        <div>
+            <label>New Images: </label>
+            <input type="file" id="updateImages" accept="image/*" multiple>
+        </div>
+        <button onclick="testProductUpdate()">Update Product Images</button>
+        <div id="updateTestResult"></div>
+    </div>
+
+    <div class="section">
+        <h2>5. Debug Information</h2>
+        <div id="debugInfo"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://127.0.0.1:8001/api';
+        
+        function log(message, type = 'info') {
+            console.log(`[${type.toUpperCase()}] ${message}`);
+            const debugDiv = document.getElementById('debugInfo');
+            const timestamp = new Date().toLocaleTimeString();
+            debugDiv.innerHTML += `<div class="${type}">[${timestamp}] ${message}</div>`;
+        }
+
+        async function testConnection() {
+            const resultDiv = document.getElementById('connectionResult');
+            resultDiv.innerHTML = '<div class="info">Testing connection...</div>';
+            
+            try {
+                const response = await fetch(`${API_BASE}/products`);
+                if (response.ok) {
+                    const data = await response.json();
+                    resultDiv.innerHTML = `<div class="success">✅ Connection successful! Found ${data.length} products</div>`;
+                    log(`API connection successful - ${data.length} products found`, 'success');
+                } else {
+                    resultDiv.innerHTML = `<div class="error">❌ Connection failed: ${response.status} ${response.statusText}</div>`;
+                    log(`API connection failed: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Network error: ${error.message}</div>`;
+                log(`Network error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testProductWithoutImage() {
+            const resultDiv = document.getElementById('productNoImageResult');
+            resultDiv.innerHTML = '<div class="info">Creating product without images...</div>';
+            
+            try {
+                const response = await fetch(`${API_BASE}/products`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: 'Test Product No Image',
+                        category_id: 1,
+                        price: 15.99,
+                        current_price: 12.99,
+                        description: 'Test product without image',
+                        size: 'S'
+                    })
+                });
+                
+                if (response.ok) {
+                    const product = await response.json();
+                    resultDiv.innerHTML = `<div class="success">✅ Product created successfully! ID: ${product.id}</div>`;
+                    log(`Product created without image: ID ${product.id}`, 'success');
+                } else {
+                    const error = await response.text();
+                    resultDiv.innerHTML = `<div class="error">❌ Failed: ${response.status} - ${error}</div>`;
+                    log(`Product creation failed: ${response.status} - ${error}`, 'error');
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+                log(`Product creation error: ${error.message}`, 'error');
+            }
+        }
+
+        document.getElementById('imageTestForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const resultDiv = document.getElementById('imageTestResult');
+            resultDiv.innerHTML = '<div class="info">Creating product with images...</div>';
+            
+            try {
+                const formData = new FormData(e.target);
+                const files = e.target.elements.images.files;
+                
+                // Debug: Log form data
+                log(`Uploading product with ${files.length} images`, 'info');
+                for (let [key, value] of formData.entries()) {
+                    if (value instanceof File) {
+                        log(`File: ${key} = ${value.name} (${value.size} bytes)`, 'info');
+                    } else {
+                        log(`Field: ${key} = ${value}`, 'info');
+                    }
+                }
+                
+                // Clear existing images and add as array
+                formData.delete('images');
+                for (let i = 0; i < files.length; i++) {
+                    formData.append('images[]', files[i]);
+                }
+                
+                const response = await fetch(`${API_BASE}/products`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    const product = await response.json();
+                    resultDiv.innerHTML = `<div class="success">✅ Product with images created! ID: ${product.id}<br>Images: ${JSON.stringify(product.images)}</div>`;
+                    log(`Product with images created: ID ${product.id}`, 'success');
+                } else {
+                    const error = await response.text();
+                    resultDiv.innerHTML = `<div class="error">❌ Failed: ${response.status} - ${error}</div>`;
+                    log(`Product with images failed: ${response.status} - ${error}`, 'error');
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+                log(`Product with images error: ${error.message}`, 'error');
+            }
+        });
+
+        async function testProductUpdate() {
+            const resultDiv = document.getElementById('updateTestResult');
+            const productId = document.getElementById('updateProductId').value;
+            const filesInput = document.getElementById('updateImages');
+            
+            if (!productId || !filesInput.files.length) {
+                resultDiv.innerHTML = '<div class="error">❌ Please enter product ID and select images</div>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<div class="info">Updating product with images...</div>';
+            
+            try {
+                const formData = new FormData();
+                formData.append('name', 'Updated Test Product');
+                formData.append('category_id', 1);
+                formData.append('price', 29.99);
+                formData.append('current_price', 24.99);
+                formData.append('description', 'Updated product with new images');
+                formData.append('size', 'L');
+                
+                // Add images
+                for (let i = 0; i < filesInput.files.length; i++) {
+                    formData.append('images[]', filesInput.files[i]);
+                }
+                
+                log(`Updating product ${productId} with ${filesInput.files.length} images`, 'info');
+                
+                const response = await fetch(`${API_BASE}/products/${productId}`, {
+                    method: 'PUT',
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    const product = await response.json();
+                    resultDiv.innerHTML = `<div class="success">✅ Product updated successfully!<br>Images: ${JSON.stringify(product.images)}</div>`;
+                    log(`Product ${productId} updated successfully`, 'success');
+                } else {
+                    const error = await response.text();
+                    resultDiv.innerHTML = `<div class="error">❌ Update failed: ${response.status} - ${error}</div>`;
+                    log(`Product update failed: ${response.status} - ${error}`, 'error');
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+                log(`Product update error: ${error.message}`, 'error');
+            }
+        }
+
+        // Initialize
+        window.onload = function() {
+            log('🐛 Image Upload Debug Tool initialized', 'info');
+            testConnection();
+        };
+    </script>
+</body>
+</html>

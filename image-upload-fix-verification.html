@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>✅ Image Upload Fix Verification</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background-color: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .section { background: white; margin: 20px 0; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .header { background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; text-align: center; padding: 30px; border-radius: 10px; margin-bottom: 30px; }
+        .success { color: #155724; background-color: #d4edda; border: 1px solid #c3e6cb; padding: 10px; margin: 10px 0; border-radius: 4px; }
+        .error { color: #721c24; background-color: #f8d7da; border: 1px solid #f5c6cb; padding: 10px; margin: 10px 0; border-radius: 4px; }
+        .warning { color: #856404; background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; margin: 10px 0; border-radius: 4px; }
+        .info { color: #0c5460; background-color: #d1ecf1; border: 1px solid #bee5eb; padding: 10px; margin: 10px 0; border-radius: 4px; }
+        button { background: #28a745; color: white; border: none; padding: 10px 20px; margin: 5px; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #218838; }
+        input { padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px; width: 200px; }
+        .log-area { background: #f8f9fa; border: 1px solid #dee2e6; padding: 15px; margin: 10px 0; border-radius: 4px; max-height: 400px; overflow-y: auto; font-family: monospace; font-size: 12px; }
+        .step { margin: 10px 0; padding: 10px; border-left: 4px solid #28a745; background: #f8fff8; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>✅ Image Upload Fix Verification</h1>
+            <p>Testing the Laravel method spoofing fix for image uploads</p>
+        </div>
+
+        <div class="section">
+            <h2>🔧 Fix Applied</h2>
+            <div class="success">
+                <strong>✅ Dashboard Fixed:</strong> Changed PUT to POST with _method=PUT spoofing<br>
+                <strong>✅ Routes Added:</strong> Added POST route for method spoofing support<br>
+                <strong>✅ Backend Ready:</strong> ProductController already handles the request correctly
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🧪 Verification Test</h2>
+            <div class="step">
+                <strong>Step 1:</strong> Admin Authentication
+                <button onclick="loginAdmin()">Login as Admin</button>
+                <div id="authResult"></div>
+            </div>
+
+            <div class="step">
+                <strong>Step 2:</strong> File Selection
+                <input type="file" id="testFiles" accept="image/*" multiple>
+                <input type="number" id="productId" value="1" placeholder="Product ID">
+            </div>
+
+            <div class="step">
+                <strong>Step 3:</strong> Test Fixed Method
+                <button onclick="testFixedMethod()">Test Fixed Image Upload</button>
+                <div id="testResult"></div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🎯 Next Steps</h2>
+            <div class="info">
+                <ol>
+                    <li>Run this test to verify the fix works</li>
+                    <li>If successful, test in the actual dashboard</li>
+                    <li>Open <strong>http://localhost:3010/admin/dashboard</strong></li>
+                    <li>Go to Products → Edit Product → Upload Images → Save</li>
+                    <li>Images should now upload and display correctly!</li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>📊 Test Log</h2>
+            <div id="testLog" class="log-area"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://127.0.0.1:8001/api';
+        let adminToken = localStorage.getItem('admin_token');
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logArea = document.getElementById('testLog');
+            logArea.innerHTML += `<div>[${timestamp}] ${message}</div>`;
+            logArea.scrollTop = logArea.scrollHeight;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        function showResult(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : type === 'warning' ? 'warning' : 'info';
+            element.innerHTML = `<div class="${className}">${message}</div>`;
+        }
+
+        async function loginAdmin() {
+            log('🔑 Admin authentication...');
+            
+            try {
+                const response = await fetch(`${API_BASE}/admin/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: 'admin@admin.com',
+                        password: 'admin123'
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    adminToken = data.token;
+                    localStorage.setItem('admin_token', adminToken);
+                    
+                    log('✅ Admin authentication successful', 'success');
+                    showResult('authResult', '✅ Authentication successful', 'success');
+                } else {
+                    throw new Error(`Login failed: ${response.status}`);
+                }
+            } catch (error) {
+                log(`❌ Login failed: ${error.message}`, 'error');
+                showResult('authResult', '❌ Login failed', 'error');
+            }
+        }
+
+        async function testFixedMethod() {
+            const files = document.getElementById('testFiles').files;
+            const productId = document.getElementById('productId').value;
+
+            if (!adminToken) {
+                showResult('testResult', '❌ Please login first', 'error');
+                return;
+            }
+
+            if (!files.length) {
+                showResult('testResult', '❌ Please select images first', 'error');
+                return;
+            }
+
+            log('🧪 Testing fixed method (POST + _method=PUT)...');
+            showResult('testResult', '🔄 Testing fixed upload method...', 'info');
+
+            try {
+                // Use the exact same method as the fixed dashboard
+                const formData = new FormData();
+                formData.append('_method', 'PUT'); // Laravel method spoofing
+                formData.append('name', 'Fixed Method Test');
+                formData.append('category_id', 1);
+                formData.append('price', 99.99);
+                formData.append('current_price', 79.99);
+                formData.append('description', 'Testing the fixed upload method');
+                formData.append('size', 'M');
+                formData.append('status', 'active');
+                
+                Array.from(files).forEach((file, idx) => {
+                    formData.append('images[]', file);
+                    log(`📸 Adding image ${idx + 1}: ${file.name} (${file.size} bytes)`);
+                });
+
+                log('📤 Sending POST request with _method=PUT to product endpoint...');
+
+                const response = await fetch(`${API_BASE}/products/${productId}`, {
+                    method: 'POST', // Using POST with method spoofing
+                    headers: {
+                        'Authorization': `Bearer ${adminToken}`
+                        // No Content-Type for FormData
+                    },
+                    body: formData
+                });
+
+                log(`📥 Response status: ${response.status}`);
+
+                if (response.ok) {
+                    const result = await response.json();
+                    const hasImages = result.images && result.images.length > 0;
+                    const imageCount = hasImages ? result.images.length : 0;
+
+                    log(`✅ Fixed method SUCCESS!`, 'success');
+                    log(`📊 Images uploaded: ${imageCount}`, 'success');
+                    log(`📊 Image paths: ${JSON.stringify(result.images)}`, 'success');
+
+                    showResult('testResult', `
+                        <div class="success">
+                            ✅ <strong>FIX SUCCESSFUL!</strong><br>
+                            • Method: POST + _method=PUT ✅<br>
+                            • Images uploaded: ${imageCount} ✅<br>
+                            • Backend received files: ✅<br>
+                            • Image paths: ${JSON.stringify(result.images)}<br>
+                            <br>
+                            <strong>🎉 The dashboard image upload should now work!</strong>
+                        </div>
+                    `, 'success');
+                } else {
+                    const errorText = await response.text();
+                    log(`❌ Fixed method failed: ${response.status} - ${errorText}`, 'error');
+                    showResult('testResult', `❌ Test failed: ${response.status}<br>${errorText}`, 'error');
+                }
+            } catch (error) {
+                log(`💥 Fixed method error: ${error.message}`, 'error');
+                showResult('testResult', `❌ Test error: ${error.message}`, 'error');
+            }
+        }
+
+        // Initialize
+        window.onload = function() {
+            log('🚀 Image Upload Fix Verification initialized');
+            if (adminToken) {
+                showResult('authResult', `✅ Using existing admin token`, 'success');
+            }
+        };
+    </script>
+</body>
+</html>

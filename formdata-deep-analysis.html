@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔬 FormData Deep Analysis</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        .result { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        .warning { background: #fff3cd; color: #856404; }
+        input, button { margin: 5px; padding: 8px; }
+        button { cursor: pointer; background: #007bff; color: white; border: none; border-radius: 4px; }
+        .console { height: 300px; overflow-y: auto; background: #f8f9fa; padding: 10px; border: 1px solid #ddd; margin: 10px 0; font-family: monospace; font-size: 12px; }
+        .code-block { background: #f8f9fa; padding: 10px; border-left: 3px solid #007bff; margin: 10px 0; font-family: monospace; }
+    </style>
+</head>
+<body>
+    <h1>🔬 FormData Deep Analysis Tool</h1>
+    <p>This tool will help us identify the exact issue with FormData construction and transmission.</p>
+    
+    <div class="test-section">
+        <h3>Test 1: File Selection & FormData Construction</h3>
+        <input type="file" id="testFiles" accept="image/*" multiple>
+        <button onclick="testBasicFormData()">🧪 Test Basic FormData</button>
+        <div id="basicResult"></div>
+        <div class="console" id="basicConsole"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>Test 2: Dashboard-Style State Management</h3>
+        <button onclick="testStateManagement()">🔄 Test State Management</button>
+        <div id="stateResult"></div>
+        <div class="console" id="stateConsole"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>Test 3: Raw HTTP Request Analysis</h3>
+        <button onclick="testRawRequest()">📡 Test Raw HTTP Request</button>
+        <div id="requestResult"></div>
+        <div class="console" id="requestConsole"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>Test 4: Dashboard Simulation</h3>
+        <button onclick="simulateDashboard()">🎭 Simulate Dashboard Workflow</button>
+        <div id="dashboardResult"></div>
+        <div class="console" id="dashboardConsole"></div>
+    </div>
+    
+    <script>
+        const API_BASE = 'http://127.0.0.1:8001/api';
+        let adminToken = null;
+        let selectedFiles = [];
+        let editProductForm = { images: [] }; // Simulate dashboard state
+        
+        function log(message, consoleId, type = 'info') {
+            const console = document.getElementById(consoleId);
+            const timestamp = new Date().toLocaleTimeString();
+            const colors = {
+                info: '#333',
+                error: '#dc3545',
+                success: '#28a745',
+                warning: '#ffc107',
+                debug: '#6c757d'
+            };
+            const color = colors[type] || colors.info;
+            console.innerHTML += `<div style="color: ${color}">[${timestamp}] ${message}</div>`;
+            console.scrollTop = console.scrollHeight;
+        }
+        
+        function showResult(elementId, message, type = 'info') {
+            document.getElementById(elementId).innerHTML = `<div class="${type}">${message}</div>`;
+        }
+        
+        // Get admin token first
+        async function getAdminToken() {
+            if (adminToken) return adminToken;
+            
+            try {
+                const response = await fetch(`${API_BASE}/admin/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: 'admin@admin.com',
+                        password: 'admin123'
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    adminToken = data.token;
+                    return adminToken;
+                } else {
+                    throw new Error(`Login failed: ${response.status}`);
+                }
+            } catch (error) {
+                throw new Error(`Token error: ${error.message}`);
+            }
+        }
+        
+        async function testBasicFormData() {
+            const filesInput = document.getElementById('testFiles');
+            selectedFiles = Array.from(filesInput.files);
+            
+            log('🧪 Starting basic FormData test...', 'basicConsole');
+            
+            if (selectedFiles.length === 0) {
+                showResult('basicResult', '❌ Please select files first', 'error');
+                log('❌ No files selected', 'basicConsole', 'error');
+                return;
+            }
+            
+            log(`📁 Selected ${selectedFiles.length} files:`, 'basicConsole');
+            selectedFiles.forEach((file, idx) => {
+                log(`  ${idx + 1}. ${file.name} (${file.size} bytes, ${file.type})`, 'basicConsole');
+            });
+            
+            // Test FormData construction
+            try {
+                const formData = new FormData();
+                
+                // Add basic fields
+                formData.append('name', 'Test Product');
+                formData.append('category_id', 1);
+                formData.append('price', 29.99);
+                formData.append('current_price', 24.99);
+                formData.append('description', 'Test description');
+                formData.append('size', 'M');
+                formData.append('status', 'active');
+                
+                log('📝 Added basic fields to FormData', 'basicConsole');
+                
+                // Add files exactly like dashboard
+                selectedFiles.forEach((file, idx) => {
+                    formData.append('images[]', file);
+                    log(`📸 Added to FormData: images[${idx}] = ${file.name}`, 'basicConsole', 'success');
+                });
+                
+                // Verify FormData contents
+                let fileCount = 0;
+                let totalEntries = 0;
+                
+                for (let [key, value] of formData.entries()) {
+                    totalEntries++;
+                    if (key.startsWith('images') && value instanceof File) {
+                        fileCount++;
+                        log(`✅ FormData contains file: ${key} = ${value.name} (${value.size} bytes)`, 'basicConsole', 'success');
+                    } else {
+                        log(`📋 FormData contains: ${key} = ${value}`, 'basicConsole');
+                    }
+                }
+                
+                if (fileCount === selectedFiles.length) {
+                    showResult('basicResult', `✅ FormData construction SUCCESS! ${fileCount} files properly added`, 'success');
+                    log(`🎉 FormData test PASSED: ${fileCount}/${selectedFiles.length} files correctly added`, 'basicConsole', 'success');
+                } else {
+                    showResult('basicResult', `❌ FormData construction FAILED! Expected ${selectedFiles.length}, got ${fileCount}`, 'error');
+                    log(`💥 FormData test FAILED: Expected ${selectedFiles.length}, got ${fileCount}`, 'basicConsole', 'error');
+                }
+                
+            } catch (error) {
+                showResult('basicResult', `❌ Error: ${error.message}`, 'error');
+                log(`💥 FormData construction error: ${error.message}`, 'basicConsole', 'error');
+            }
+        }
+        
+        function testStateManagement() {
+            log('🔄 Testing dashboard-style state management...', 'stateConsole');
+            
+            const filesInput = document.getElementById('testFiles');
+            if (filesInput.files.length === 0) {
+                showResult('stateResult', '❌ Please select files first', 'error');
+                return;
+            }
+            
+            // Simulate dashboard state management
+            const files = Array.from(filesInput.files);
+            log(`📁 Processing ${files.length} files through state management...`, 'stateConsole');
+            
+            // Simulate handleEditProductImageChange function
+            const previousImages = editProductForm.images || [];
+            const newState = {
+                ...editProductForm,
+                images: previousImages.length > 0 ? [...previousImages, ...files] : files
+            };
+            
+            log('📝 State update details:', 'stateConsole');
+            log(`  Previous images: ${previousImages.length}`, 'stateConsole');
+            log(`  New images: ${files.length}`, 'stateConsole');
+            log(`  Total images: ${newState.images.length}`, 'stateConsole');
+            
+            editProductForm = newState;
+            
+            // Verify state
+            log('🔍 Verifying state contents:', 'stateConsole');
+            if (editProductForm.images && editProductForm.images.length > 0) {
+                editProductForm.images.forEach((img, idx) => {
+                    if (img instanceof File) {
+                        log(`  ✅ Image ${idx + 1}: ${img.name} (${img.size} bytes) - Valid File object`, 'stateConsole', 'success');
+                    } else {
+                        log(`  ❌ Image ${idx + 1}: ${typeof img} - NOT a File object!`, 'stateConsole', 'error');
+                    }
+                });
+                
+                showResult('stateResult', `✅ State management SUCCESS! ${editProductForm.images.length} images in state`, 'success');
+                log(`🎉 State test PASSED: ${editProductForm.images.length} valid File objects in state`, 'stateConsole', 'success');
+            } else {
+                showResult('stateResult', '❌ State management FAILED! No images in state', 'error');
+                log('💥 State test FAILED: No images found in state', 'stateConsole', 'error');
+            }
+        }
+        
+        async function testRawRequest() {
+            log('📡 Testing raw HTTP request...', 'requestConsole');
+            
+            if (!editProductForm.images || editProductForm.images.length === 0) {
+                showResult('requestResult', '❌ Please run state management test first', 'error');
+                return;
+            }
+            
+            try {
+                const token = await getAdminToken();
+                log(`🔑 Got admin token: ${token.substring(0, 20)}...`, 'requestConsole');
+                
+                // Build FormData from state
+                const formData = new FormData();
+                formData.append('name', 'Raw Test Product');
+                formData.append('category_id', 1);
+                formData.append('price', 99.99);
+                formData.append('current_price', 79.99);
+                formData.append('description', 'Raw HTTP test');
+                formData.append('size', 'L');
+                formData.append('status', 'active');
+                
+                log('📝 Adding images from state to FormData...', 'requestConsole');
+                editProductForm.images.forEach((img, idx) => {
+                    if (img instanceof File) {
+                        formData.append('images[]', img);
+                        log(`  📸 Added: images[${idx}] = ${img.name}`, 'requestConsole', 'success');
+                    } else {
+                        log(`  ❌ Skipped: images[${idx}] = ${typeof img} (not a File)`, 'requestConsole', 'error');
+                    }
+                });
+                
+                // Send request
+                log('🌐 Sending PUT request to API...', 'requestConsole');
+                const response = await fetch(`${API_BASE}/products/1`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                });
+                
+                log(`📥 Response: ${response.status} ${response.statusText}`, 'requestConsole');
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    log(`✅ Request SUCCESS!`, 'requestConsole', 'success');
+                    log(`📊 Images in response: ${result.images ? result.images.length : 0}`, 'requestConsole', 'success');
+                    showResult('requestResult', `✅ Request successful! Images: ${result.images ? result.images.length : 0}`, 'success');
+                } else {
+                    const errorText = await response.text();
+                    log(`❌ Request FAILED: ${errorText}`, 'requestConsole', 'error');
+                    showResult('requestResult', `❌ Request failed: ${response.status}`, 'error');
+                }
+                
+            } catch (error) {
+                log(`💥 Request error: ${error.message}`, 'requestConsole', 'error');
+                showResult('requestResult', `❌ Error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function simulateDashboard() {
+            log('🎭 Simulating complete dashboard workflow...', 'dashboardConsole');
+            
+            const filesInput = document.getElementById('testFiles');
+            if (filesInput.files.length === 0) {
+                showResult('dashboardResult', '❌ Please select files first', 'error');
+                return;
+            }
+            
+            try {
+                // Step 1: Simulate file selection (like handleEditProductImageChange)
+                log('1️⃣ Simulating file selection...', 'dashboardConsole');
+                const files = Array.from(filesInput.files);
+                
+                // Reset form state
+                let simulatedForm = { images: [] };
+                
+                // Simulate state update
+                simulatedForm = {
+                    ...simulatedForm,
+                    images: simulatedForm.images ? [...simulatedForm.images, ...files] : files
+                };
+                
+                log(`  📁 Selected ${files.length} files`, 'dashboardConsole');
+                log(`  💾 State updated: ${simulatedForm.images.length} images in form`, 'dashboardConsole');
+                
+                // Step 2: Simulate save function
+                log('2️⃣ Simulating save function...', 'dashboardConsole');
+                const hasNewImages = simulatedForm.images && simulatedForm.images.length > 0;
+                log(`  🔍 hasNewImages: ${hasNewImages}`, 'dashboardConsole');
+                
+                if (hasNewImages) {
+                    // Step 3: Build FormData exactly like dashboard
+                    log('3️⃣ Building FormData exactly like dashboard...', 'dashboardConsole');
+                    const formData = new FormData();
+                    
+                    // Add basic fields
+                    formData.append('name', 'Dashboard Simulation Test');
+                    formData.append('category_id', 1);
+                    formData.append('price', 99.99);
+                    formData.append('current_price', 79.99);
+                    formData.append('description', 'Dashboard simulation test');
+                    formData.append('size', 'M');
+                    formData.append('status', 'active');
+                    
+                    // Add images exactly like dashboard
+                    simulatedForm.images.forEach((img, idx) => {
+                        formData.append('images[]', img);
+                        log(`  📸 Added: images[${idx}] = ${img.name} (${img.size} bytes)`, 'dashboardConsole', 'debug');
+                    });
+                    
+                    // Step 4: Send request
+                    log('4️⃣ Sending request...', 'dashboardConsole');
+                    const token = await getAdminToken();
+                    
+                    const response = await fetch(`${API_BASE}/products/1`, {
+                        method: 'PUT',
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: formData
+                    });
+                    
+                    log(`📥 Response: ${response.status}`, 'dashboardConsole');
+                    
+                    if (response.ok) {
+                        const result = await response.json();
+                        log(`🎉 DASHBOARD SIMULATION SUCCESS!`, 'dashboardConsole', 'success');
+                        log(`📊 Result images: ${result.images ? result.images.length : 0}`, 'dashboardConsole', 'success');
+                        showResult('dashboardResult', `✅ Dashboard simulation SUCCESS! Images uploaded: ${result.images ? result.images.length : 0}`, 'success');
+                    } else {
+                        const errorText = await response.text();
+                        log(`💥 Dashboard simulation FAILED: ${errorText}`, 'dashboardConsole', 'error');
+                        showResult('dashboardResult', `❌ Dashboard simulation FAILED: ${response.status}`, 'error');
+                    }
+                } else {
+                    log('❌ hasNewImages is false - this indicates a state management issue', 'dashboardConsole', 'error');
+                    showResult('dashboardResult', '❌ State management issue detected', 'error');
+                }
+                
+            } catch (error) {
+                log(`💥 Dashboard simulation error: ${error.message}`, 'dashboardConsole', 'error');
+                showResult('dashboardResult', `❌ Error: ${error.message}`, 'error');
+            }
+        }
+        
+        // Initialize
+        log('🔬 FormData Deep Analysis Tool initialized', 'basicConsole');
+        log('👆 Select files and run tests to identify the exact issue', 'basicConsole');
+    </script>
+</body>
+</html>

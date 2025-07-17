@@ -621,6 +621,207 @@ class OrderController extends Controller
     }
 
     /**
+     * Update customer information for an order
+     */
+    public function updateCustomerInfo(Request $request, Order $order)
+    {
+        try {
+            $validated = $request->validate([
+                'client_name' => 'required|string|max:255',
+                'client_lastname' => 'required|string|max:255',
+                'email' => 'required|email|max:255',
+                'phone' => 'required|string|max:20',
+            ]);
+
+            $oldData = [
+                'client_name' => $order->client_name,
+                'client_lastname' => $order->client_lastname,
+                'email' => $order->email,
+                'phone' => $order->phone,
+            ];
+
+            $order->update($validated);
+
+            // Create notification for customer info update
+            $notification = AdminNotification::createOrderNotification($order, 'order_updated');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Customer information updated successfully',
+                'data' => [
+                    'order_id' => $order->id,
+                    'old_data' => $oldData,
+                    'new_data' => $validated,
+                    'notification_id' => $notification->id
+                ]
+            ]);
+
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update customer information',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Update delivery information for an order
+     */
+    public function updateDeliveryInfo(Request $request, Order $order)
+    {
+        try {
+            $validated = $request->validate([
+                'date_arrival' => 'required|date|after:today',
+                'delivery_address' => 'nullable|string|max:500',
+                'delivery_notes' => 'nullable|string|max:1000',
+            ]);
+
+            $oldData = [
+                'date_arrival' => $order->date_arrival,
+            ];
+
+            $order->update($validated);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Delivery information updated successfully',
+                'data' => [
+                    'order_id' => $order->id,
+                    'old_data' => $oldData,
+                    'new_data' => $validated
+                ]
+            ]);
+
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update delivery information',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Update product/content for an order
+     */
+    public function updateOrderProduct(Request $request, Order $order)
+    {
+        try {
+            $validated = $request->validate([
+                'products_id' => 'required|exists:products,id',
+                'quantity' => 'nullable|integer|min:1',
+                'special_instructions' => 'nullable|string|max:1000',
+            ]);
+
+            $oldProductId = $order->products_id;
+            $oldProduct = $order->product;
+
+            $order->update(['products_id' => $validated['products_id']]);
+            $order->load('product');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Order product updated successfully',
+                'data' => [
+                    'order_id' => $order->id,
+                    'old_product' => $oldProduct ? $oldProduct->name : 'Unknown',
+                    'new_product' => $order->product->name,
+                    'new_total' => '$' . number_format($order->product->price, 2)
+                ]
+            ]);
+
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update order product',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Update order notes/comments
+     */
+    public function updateOrderNotes(Request $request, Order $order)
+    {
+        try {
+            $validated = $request->validate([
+                'admin_notes' => 'nullable|string|max:2000',
+                'customer_notes' => 'nullable|string|max:1000',
+            ]);
+
+            // Add notes to order (you might need to add these fields to the orders table)
+            $order->update($validated);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Order notes updated successfully',
+                'data' => $validated
+            ]);
+
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update order notes',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get order edit history (if you implement order history tracking)
+     */
+    public function getOrderHistory(Order $order)
+    {
+        try {
+            // This would require implementing an order_history table
+            // For now, return basic information
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'order_id' => $order->id,
+                    'created_at' => $order->created_at,
+                    'updated_at' => $order->updated_at,
+                    'current_status' => $order->status,
+                    'payment_status' => $order->payment_status ?? 'pending'
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch order history',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Remove the specified order
      */
     public function destroy(Order $order)

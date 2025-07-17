@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Final Order + WhatsApp Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            max-width: 1200px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .success {
+            color: #155724;
+            background: #d4edda;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            color: #721c24;
+            background: #f8d7da;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            color: #0c5460;
+            background: #d1ecf1;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #bee5eb;
+        }
+        button {
+            margin: 5px;
+            padding: 10px 15px;
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            background: #007bff;
+            color: white;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button.success {
+            background: #28a745;
+        }
+        button.success:hover {
+            background: #1e7e34;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            max-height: 400px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛒 Final Order + WhatsApp Integration Test</h1>
+        <p><strong>Description:</strong> Test complete order creation with automatic WhatsApp confirmation</p>
+        
+        <div class="info">
+            <strong>API Base URL:</strong> <span id="baseUrl">http://localhost:8000/api</span><br>
+            <strong>Backend Status:</strong> <span id="backendStatus">Checking...</span>
+        </div>
+    </div>
+
+    <!-- Authentication Section -->
+    <div class="container">
+        <h2>🔐 Authentication</h2>
+        <button onclick="adminLogin()">🔑 Admin Login</button>
+        <button onclick="clientLogin()">👤 Client Login</button>
+        <button onclick="logout()">🚪 Logout</button>
+        
+        <div id="authResult"></div>
+    </div>
+
+    <!-- Order Creation Tests -->
+    <div class="container">
+        <h2>📦 Order Creation with WhatsApp Integration</h2>
+        
+        <div style="margin: 10px 0;">
+            <h3>💰 Test 1: COD Order with Moroccan Phone</h3>
+            <p>Creates COD order with Moroccan phone number (+212 6XX-XXX-XXX format)</p>
+            <button class="success" onclick="createCODOrderMoroccan()">Create COD Order (Moroccan Phone)</button>
+        </div>
+        
+        <div style="margin: 10px 0;">
+            <h3>💳 Test 2: Online Payment with US Phone</h3>
+            <p>Creates online payment order with US phone number (+1 format)</p>
+            <button class="success" onclick="createOnlineOrderUS()">Create Online Order (US Phone)</button>
+        </div>
+        
+        <div style="margin: 10px 0;">
+            <h3>🌍 Test 3: International Phone Format</h3>
+            <p>Creates order with various international phone formats</p>
+            <button class="success" onclick="createOrderInternational()">Create Order (International Phone)</button>
+        </div>
+        
+        <div id="orderResult"></div>
+    </div>
+
+    <!-- WhatsApp Service Direct Test -->
+    <div class="container">
+        <h2>📱 WhatsApp Service Direct Test</h2>
+        
+        <button onclick="testWhatsAppDirect()">📱 Test WhatsApp Direct</button>
+        <button onclick="testWhatsAppOrderFormat()">📋 Test WhatsApp Order Format</button>
+        
+        <div id="whatsappResult"></div>
+    </div>
+
+    <script>
+        const baseUrl = 'http://localhost:8000/api';
+        let authToken = '';
+        
+        // Check backend status on load
+        window.onload = function() {
+            checkBackendStatus();
+        };
+        
+        async function checkBackendStatus() {
+            try {
+                const response = await fetch(`${baseUrl}/test`);
+                const data = await response.json();
+                document.getElementById('backendStatus').innerHTML = 
+                    '<span style="color: green;">✅ Connected</span>';
+            } catch (error) {
+                document.getElementById('backendStatus').innerHTML = 
+                    '<span style="color: red;">❌ Backend not running</span>';
+            }
+        }
+        
+        async function adminLogin() {
+            try {
+                const response = await fetch(`${baseUrl}/admin/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: 'admin@shop.com',
+                        password: 'admin123'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    authToken = data.token;
+                    document.getElementById('authResult').innerHTML = `
+                        <div class="success">
+                            ✅ Admin logged in successfully!<br>
+                            Token: ${data.token.substring(0, 20)}...
+                        </div>
+                    `;
+                } else {
+                    document.getElementById('authResult').innerHTML = `
+                        <div class="error">❌ Login failed: ${data.message}</div>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('authResult').innerHTML = `
+                    <div class="error">❌ Connection Error: ${error.message}</div>
+                `;
+            }
+        }
+        
+        async function clientLogin() {
+            try {
+                const response = await fetch(`${baseUrl}/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: 'client@shop.com',
+                        password: 'client123'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    authToken = data.token;
+                    document.getElementById('authResult').innerHTML = `
+                        <div class="success">
+                            ✅ Client logged in successfully!<br>
+                            Token: ${data.token.substring(0, 20)}...
+                        </div>
+                    `;
+                } else {
+                    document.getElementById('authResult').innerHTML = `
+                        <div class="error">❌ Login failed: ${data.message}</div>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('authResult').innerHTML = `
+                    <div class="error">❌ Connection Error: ${error.message}</div>
+                `;
+            }
+        }
+        
+        async function logout() {
+            authToken = '';
+            document.getElementById('authResult').innerHTML = `
+                <div class="info">🚪 Logged out successfully</div>
+            `;
+        }
+        
+        async function createCODOrderMoroccan() {
+            const orderData = {
+                products_id: 1,
+                client_name: "Ahmed",
+                client_lastname: "Benali",
+                email: "ahmed.benali@gmail.com",
+                phone: "+212 6 12 34 56 78",  // Moroccan format
+                method_payment: "Cash on Delivery",
+                payment_method: "cod",
+                date_arrival: "2025-07-20"
+            };
+            
+            await createOrder(orderData, "COD Order (Moroccan Phone)");
+        }
+        
+        async function createOnlineOrderUS() {
+            const orderData = {
+                products_id: 1,
+                client_name: "John",
+                client_lastname: "Smith",
+                email: "john.smith@gmail.com",
+                phone: "+1 (555) 123-4567",  // US format
+                method_payment: "PayPal",
+                payment_method: "online",
+                payment_status: "paid",
+                date_arrival: "2025-07-20"
+            };
+            
+            await createOrder(orderData, "Online Order (US Phone)");
+        }
+        
+        async function createOrderInternational() {
+            const orderData = {
+                products_id: 1,
+                client_name: "Marie",
+                client_lastname: "Dubois",
+                email: "marie.dubois@gmail.com",
+                phone: "+33 1 23 45 67 89",  // French format
+                method_payment: "Credit Card",
+                payment_method: "online",
+                payment_status: "paid",
+                date_arrival: "2025-07-20"
+            };
+            
+            await createOrder(orderData, "Order (International Phone)");
+        }
+        
+        async function createOrder(orderData, orderType) {
+            if (!authToken) {
+                document.getElementById('orderResult').innerHTML = `
+                    <div class="error">❌ Please login first!</div>
+                `;
+                return;
+            }
+            
+            try {
+                console.log('Creating order with data:', orderData);
+                
+                const response = await fetch(`${baseUrl}/orders`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify(orderData)
+                });
+                
+                const data = await response.json();
+                console.log('Order response:', data);
+                
+                if (response.ok) {
+                    document.getElementById('orderResult').innerHTML = `
+                        <div class="success">
+                            <strong>✅ ${orderType} Created Successfully!</strong><br>
+                            Order ID: ${data.data.order_id}<br>
+                            Order Number: ${data.data.order_number}<br>
+                            Status: ${data.data.status}<br>
+                            Payment Method: ${data.data.payment_method}<br>
+                            Payment Status: ${data.data.payment_status}<br>
+                            ${data.data.payment_code ? `Payment Code: ${data.data.payment_code}<br>` : ''}
+                            Total: ${data.data.total}<br>
+                            <strong>📱 WhatsApp should be sent automatically!</strong>
+                        </div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    document.getElementById('orderResult').innerHTML = `
+                        <div class="error">
+                            ❌ ${orderType} Failed: ${data.message}<br>
+                            ${data.error ? `Error: ${data.error}` : ''}
+                            ${data.errors ? `Validation Errors: ${JSON.stringify(data.errors)}` : ''}
+                        </div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('orderResult').innerHTML = `
+                    <div class="error">❌ Connection Error: ${error.message}</div>
+                `;
+            }
+        }
+        
+        async function testWhatsAppDirect() {
+            if (!authToken) {
+                document.getElementById('whatsappResult').innerHTML = `
+                    <div class="error">❌ Please login first!</div>
+                `;
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${baseUrl}/test-whatsapp`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({
+                        phone: "+212 6 12 34 56 78",
+                        message: "Test WhatsApp message from order system!"
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    document.getElementById('whatsappResult').innerHTML = `
+                        <div class="success">
+                            <strong>✅ WhatsApp Test Successful!</strong>
+                        </div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    document.getElementById('whatsappResult').innerHTML = `
+                        <div class="error">
+                            ❌ WhatsApp Test Failed: ${data.message}
+                        </div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('whatsappResult').innerHTML = `
+                    <div class="error">❌ Connection Error: ${error.message}</div>
+                `;
+            }
+        }
+        
+        async function testWhatsAppOrderFormat() {
+            if (!authToken) {
+                document.getElementById('whatsappResult').innerHTML = `
+                    <div class="error">❌ Please login first!</div>
+                `;
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${baseUrl}/test-whatsapp-order`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    document.getElementById('whatsappResult').innerHTML = `
+                        <div class="success">
+                            <strong>✅ WhatsApp Order Format Test Successful!</strong>
+                        </div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    document.getElementById('whatsappResult').innerHTML = `
+                        <div class="error">
+                            ❌ WhatsApp Order Format Test Failed: ${data.message}
+                        </div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('whatsappResult').innerHTML = `
+                    <div class="error">❌ Connection Error: ${error.message}</div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

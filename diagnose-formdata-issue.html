@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔍 FormData Issue Diagnosis</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background-color: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .section { background: white; margin: 20px 0; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-align: center; padding: 30px; border-radius: 10px; margin-bottom: 30px; }
+        .test-group { border: 1px solid #ddd; margin: 10px 0; padding: 15px; border-radius: 5px; }
+        .success { color: #155724; background-color: #d4edda; border: 1px solid #c3e6cb; padding: 10px; margin: 10px 0; border-radius: 4px; }
+        .error { color: #721c24; background-color: #f8d7da; border: 1px solid #f5c6cb; padding: 10px; margin: 10px 0; border-radius: 4px; }
+        .warning { color: #856404; background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; margin: 10px 0; border-radius: 4px; }
+        .info { color: #0c5460; background-color: #d1ecf1; border: 1px solid #bee5eb; padding: 10px; margin: 10px 0; border-radius: 4px; }
+        button { background: #007bff; color: white; border: none; padding: 10px 20px; margin: 5px; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        input, select { padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px; width: 200px; }
+        .log-area { background: #f8f9fa; border: 1px solid #dee2e6; padding: 15px; margin: 10px 0; border-radius: 4px; max-height: 400px; overflow-y: auto; font-family: monospace; font-size: 12px; }
+        .step { margin: 10px 0; padding: 10px; border-left: 4px solid #007bff; background: #f8f9fa; }
+        .critical { border-left-color: #dc3545 !important; background: #fff5f5; }
+        .passed { border-left-color: #28a745 !important; background: #f8fff8; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 FormData Issue Diagnosis</h1>
+            <p>Diagnosing why images aren't reaching the backend despite proper frontend selection</p>
+        </div>
+
+        <div class="section">
+            <h2>🎯 Issue Summary</h2>
+            <div class="warning">
+                <strong>Problem:</strong> Backend logs show <code>"has_files":false</code> and <code>"files_count":0</code> even when images are selected in the frontend.
+            </div>
+            <div class="info">
+                <strong>Expected:</strong> FormData should contain File objects that are transmitted to the server.
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🔧 Step 1: Admin Authentication</h2>
+            <div class="test-group">
+                <button onclick="loginAdmin()">Login as Admin</button>
+                <div id="authResult"></div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>📸 Step 2: File Selection Test</h2>
+            <div class="test-group">
+                <input type="file" id="testFiles" accept="image/*" multiple onchange="analyzeFileSelection()">
+                <div id="fileAnalysis"></div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🏗️ Step 3: FormData Construction Test</h2>
+            <div class="test-group">
+                <button onclick="testFormDataConstruction()">Test FormData Construction</button>
+                <div id="formDataResult"></div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>📡 Step 4: Network Transmission Test</h2>
+            <div class="test-group">
+                <input type="number" id="productId" value="1" placeholder="Product ID">
+                <button onclick="testNetworkTransmission()">Test Network Transmission</button>
+                <div id="networkResult"></div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🔍 Step 5: Dashboard Simulation</h2>
+            <div class="test-group">
+                <button onclick="simulateDashboardWorkflow()">Simulate Exact Dashboard Workflow</button>
+                <div id="dashboardResult"></div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>📊 Diagnostic Results</h2>
+            <div id="diagnosticLog" class="log-area"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://127.0.0.1:8001/api';
+        let adminToken = localStorage.getItem('admin_token');
+        let selectedFiles = [];
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logArea = document.getElementById('diagnosticLog');
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : 'info';
+            logArea.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+            logArea.scrollTop = logArea.scrollHeight;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        function showResult(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : type === 'warning' ? 'warning' : 'info';
+            element.innerHTML = `<div class="${className}">${message}</div>`;
+        }
+
+        async function loginAdmin() {
+            log('🔑 Starting admin authentication test...');
+            
+            try {
+                const response = await fetch(`${API_BASE}/admin/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: 'admin@admin.com',
+                        password: 'admin123'
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    adminToken = data.token;
+                    localStorage.setItem('admin_token', adminToken);
+                    
+                    log('✅ Admin authentication successful', 'success');
+                    showResult('authResult', `✅ Authentication successful<br>Token: ${adminToken.substring(0, 30)}...`, 'success');
+                } else {
+                    const error = await response.text();
+                    log(`❌ Authentication failed: ${response.status} - ${error}`, 'error');
+                    showResult('authResult', `❌ Authentication failed: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                log(`💥 Authentication error: ${error.message}`, 'error');
+                showResult('authResult', `❌ Authentication error: ${error.message}`, 'error');
+            }
+        }
+
+        function analyzeFileSelection() {
+            const fileInput = document.getElementById('testFiles');
+            selectedFiles = Array.from(fileInput.files);
+            
+            log(`📸 File selection analysis: ${selectedFiles.length} files selected`);
+            
+            let analysis = `<div class="step ${selectedFiles.length > 0 ? 'passed' : 'critical'}">`;
+            analysis += `<strong>Files Selected:</strong> ${selectedFiles.length}<br>`;
+            
+            if (selectedFiles.length > 0) {
+                analysis += '<strong>File Details:</strong><br>';
+                selectedFiles.forEach((file, index) => {
+                    analysis += `• File ${index + 1}: ${file.name} (${file.size} bytes, ${file.type})<br>`;
+                    analysis += `  - Is File object: ${file instanceof File ? '✅' : '❌'}<br>`;
+                    analysis += `  - Has name: ${file.name ? '✅' : '❌'}<br>`;
+                    analysis += `  - Has size: ${file.size > 0 ? '✅' : '❌'}<br>`;
+                    
+                    log(`  File ${index + 1}: ${file.name} (${file.size} bytes, ${file.type}) - Valid: ${file instanceof File}`);
+                });
+                analysis += '</div>';
+                showResult('fileAnalysis', analysis, 'success');
+            } else {
+                analysis += 'No files selected!</div>';
+                showResult('fileAnalysis', analysis, 'error');
+            }
+        }
+
+        function testFormDataConstruction() {
+            if (selectedFiles.length === 0) {
+                showResult('formDataResult', '❌ Please select files first', 'error');
+                return;
+            }
+
+            log('🏗️ Testing FormData construction...');
+
+            try {
+                // Test 1: Basic FormData construction
+                const formData = new FormData();
+                formData.append('name', 'Test Product Update');
+                formData.append('category_id', 1);
+                formData.append('price', 99.99);
+                formData.append('current_price', 79.99);
+                formData.append('description', 'FormData test');
+                formData.append('size', 'M');
+                formData.append('status', 'active');
+
+                // Test 2: Add images using exact dashboard method
+                selectedFiles.forEach((img, idx) => {
+                    formData.append('images[]', img);
+                    log(`  Added to FormData: images[${idx}] = ${img.name} (${img.size} bytes)`);
+                });
+
+                // Test 3: Verify FormData contents
+                log('📋 FormData contents verification:');
+                let formDataEntries = 0;
+                let imageEntries = 0;
+                
+                for (let [key, value] of formData.entries()) {
+                    formDataEntries++;
+                    if (key === 'images[]') {
+                        imageEntries++;
+                        if (value instanceof File) {
+                            log(`  ✅ ${key}: ${value.name} (File object)`, 'success');
+                        } else {
+                            log(`  ❌ ${key}: ${value} (NOT a File object!)`, 'error');
+                        }
+                    } else {
+                        log(`  📝 ${key}: ${value}`);
+                    }
+                }
+
+                const result = `
+                    <div class="step ${imageEntries === selectedFiles.length ? 'passed' : 'critical'}">
+                        <strong>FormData Construction Test Results:</strong><br>
+                        • Total FormData entries: ${formDataEntries}<br>
+                        • Expected image entries: ${selectedFiles.length}<br>
+                        • Actual image entries: ${imageEntries}<br>
+                        • Construction Status: ${imageEntries === selectedFiles.length ? '✅ SUCCESS' : '❌ FAILED'}
+                    </div>
+                `;
+
+                showResult('formDataResult', result, imageEntries === selectedFiles.length ? 'success' : 'error');
+                
+                // Store formData for network test
+                window.testFormData = formData;
+                
+            } catch (error) {
+                log(`💥 FormData construction error: ${error.message}`, 'error');
+                showResult('formDataResult', `❌ Construction failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function testNetworkTransmission() {
+            if (!adminToken) {
+                showResult('networkResult', '❌ Please login first', 'error');
+                return;
+            }
+
+            if (!window.testFormData) {
+                showResult('networkResult', '❌ Please run FormData construction test first', 'error');
+                return;
+            }
+
+            const productId = document.getElementById('productId').value;
+            if (!productId) {
+                showResult('networkResult', '❌ Please enter product ID', 'error');
+                return;
+            }
+
+            log('📡 Testing network transmission...');
+            showResult('networkResult', '🔄 Transmitting FormData to server...', 'info');
+
+            try {
+                // Clear backend logs first (check current state)
+                log('📤 Sending FormData to backend...');
+                log(`🎯 Target URL: ${API_BASE}/products/${productId}`);
+                log(`🔑 Token: ${adminToken.substring(0, 20)}...`);
+
+                const response = await fetch(`${API_BASE}/products/${productId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${adminToken}`
+                        // Note: No Content-Type header for FormData
+                    },
+                    body: window.testFormData
+                });
+
+                log(`📥 Response status: ${response.status} ${response.statusText}`);
+
+                if (response.ok) {
+                    const result = await response.json();
+                    log('✅ Network transmission successful!', 'success');
+                    log(`📊 Server response: ${JSON.stringify(result, null, 2)}`, 'success');
+                    
+                    const hasImages = result.images && result.images.length > 0;
+                    showResult('networkResult', `
+                        <div class="step ${hasImages ? 'passed' : 'critical'}">
+                            <strong>Network Transmission Results:</strong><br>
+                            • Response Status: ${response.status} ✅<br>
+                            • Images Received by Server: ${hasImages ? result.images.length : 0}<br>
+                            • Server Images Array: ${JSON.stringify(result.images)}<br>
+                            • Transmission Status: ${hasImages ? '✅ SUCCESS' : '❌ IMAGES NOT RECEIVED'}
+                        </div>
+                    `, hasImages ? 'success' : 'error');
+                } else {
+                    const errorText = await response.text();
+                    log(`❌ Network transmission failed: ${response.status} - ${errorText}`, 'error');
+                    showResult('networkResult', `❌ Transmission failed: ${response.status}<br>${errorText}`, 'error');
+                }
+            } catch (error) {
+                log(`💥 Network transmission error: ${error.message}`, 'error');
+                showResult('networkResult', `❌ Network error: ${error.message}`, 'error');
+            }
+        }
+
+        async function simulateDashboardWorkflow() {
+            if (!adminToken) {
+                showResult('dashboardResult', '❌ Please login first', 'error');
+                return;
+            }
+
+            if (selectedFiles.length === 0) {
+                showResult('dashboardResult', '❌ Please select files first', 'error');
+                return;
+            }
+
+            log('🎭 Simulating exact dashboard workflow...');
+            
+            try {
+                // Step 1: Simulate editProductForm state exactly like dashboard
+                const editProductForm = {
+                    name: 'Dashboard Simulation Test',
+                    category_id: '1',
+                    price: '99.99',
+                    current_price: '79.99',
+                    description: 'Dashboard workflow simulation',
+                    size: 'M',
+                    status: 'active',
+                    images: selectedFiles, // Exact same as dashboard
+                    currentImages: []
+                };
+
+                log('📝 Dashboard state simulation:');
+                log(`  • Form name: ${editProductForm.name}`);
+                log(`  • Images count: ${editProductForm.images.length}`);
+                log(`  • Images array type: ${Array.isArray(editProductForm.images)}`);
+                
+                editProductForm.images.forEach((img, idx) => {
+                    log(`  • Image ${idx + 1}: ${img.name} (${img.size} bytes) - File object: ${img instanceof File}`);
+                });
+
+                // Step 2: Simulate hasNewImages check (exact dashboard logic)
+                const hasNewImages = editProductForm.images && editProductForm.images.length > 0;
+                log(`🔍 hasNewImages check: ${hasNewImages}`);
+
+                if (hasNewImages) {
+                    // Step 3: FormData construction (exact dashboard code)
+                    const formData = new FormData();
+                    formData.append('name', editProductForm.name);
+                    formData.append('category_id', parseInt(editProductForm.category_id));
+                    formData.append('price', parseFloat(editProductForm.price));
+                    formData.append('current_price', parseFloat(editProductForm.current_price));
+                    formData.append('description', editProductForm.description);
+                    formData.append('size', editProductForm.size || '');
+                    formData.append('status', editProductForm.status);
+
+                    // Add images exactly like dashboard
+                    editProductForm.images.forEach((img, idx) => {
+                        log(`🖼️ Adding image ${idx + 1}: ${img.name} (${img.size} bytes)`);
+                        formData.append('images[]', img);
+                    });
+
+                    // Step 4: Network request (exact dashboard code)
+                    const productId = document.getElementById('productId').value || '1';
+                    log(`📤 Sending FormData request to: http://127.0.0.1:8001/api/products/${productId}`);
+
+                    const response = await fetch(`http://127.0.0.1:8001/api/products/${productId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Authorization': `Bearer ${adminToken}`
+                            // No Content-Type for FormData
+                        },
+                        body: formData
+                    });
+
+                    log(`📥 Response status: ${response.status}`);
+
+                    if (response.ok) {
+                        const result = await response.json();
+                        log('✅ Dashboard simulation successful!', 'success');
+                        
+                        const hasServerImages = result.images && result.images.length > 0;
+                        showResult('dashboardResult', `
+                            <div class="step ${hasServerImages ? 'passed' : 'critical'}">
+                                <strong>Dashboard Workflow Simulation Results:</strong><br>
+                                • Frontend Images: ${editProductForm.images.length} ✅<br>
+                                • FormData Construction: ✅<br>
+                                • Network Request: ${response.status} ✅<br>
+                                • Server Received Images: ${hasServerImages ? result.images.length : 0}<br>
+                                • Workflow Status: ${hasServerImages ? '✅ COMPLETE SUCCESS' : '❌ IMAGES LOST IN TRANSMISSION'}
+                            </div>
+                        `, hasServerImages ? 'success' : 'error');
+
+                        if (!hasServerImages) {
+                            log('🚨 CRITICAL: Images were lost during transmission!', 'error');
+                            log('🔍 This indicates a server-side issue with file handling', 'error');
+                        }
+                    } else {
+                        const errorText = await response.text();
+                        log(`❌ Dashboard simulation failed: ${response.status} - ${errorText}`, 'error');
+                        showResult('dashboardResult', `❌ Simulation failed: ${response.status}<br>${errorText}`, 'error');
+                    }
+                } else {
+                    log('❌ hasNewImages check failed in simulation', 'error');
+                    showResult('dashboardResult', '❌ hasNewImages check failed', 'error');
+                }
+
+            } catch (error) {
+                log(`💥 Dashboard simulation error: ${error.message}`, 'error');
+                showResult('dashboardResult', `❌ Simulation error: ${error.message}`, 'error');
+            }
+        }
+
+        // Initialize
+        window.onload = function() {
+            log('🚀 FormData Issue Diagnosis Tool initialized');
+            if (adminToken) {
+                showResult('authResult', `✅ Using existing token: ${adminToken.substring(0, 30)}...`, 'success');
+            }
+        };
+    </script>
+</body>
+</html>

@@ -18,12 +18,15 @@ class Product extends Model
         'current_price',
         'size',
         'image',
+        'images',
+        'status',
     ];
 
     protected $casts = [
         'price' => 'decimal:2',
         'current_price' => 'decimal:2',
         'reviews' => 'integer',
+        'images' => 'array',
     ];
 
     /**

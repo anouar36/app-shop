@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Order Modal Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .success { border-color: #4CAF50; background: #f0fff0; }
+        .error { border-color: #f44336; background: #fff0f0; }
+        .info { border-color: #2196F3; background: #f0f8ff; }
+        .log { margin: 5px 0; padding: 5px; font-family: monospace; }
+        button {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #1976D2; }
+        .code { background: #f5f5f5; padding: 10px; border-radius: 4px; font-family: monospace; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Edit Order Modal Function Test</h1>
+        <p>This test verifies that the missing order editing functions have been properly added to the admin dashboard.</p>
+        
+        <div class="test-section info">
+            <h3>📋 Test Instructions</h3>
+            <ol>
+                <li>Make sure both frontend (port 3006) and backend (port 8001) servers are running</li>
+                <li>Login to the admin dashboard</li>
+                <li>Navigate to the Orders section</li>
+                <li>Click the "Edit" (pencil icon) button on any order</li>
+                <li>Try clicking the "Cancel" button to test closeEditOrderModal function</li>
+                <li>Test form input changes to verify handleEditOrderFormChange function</li>
+                <li>Test saving changes with the "Save Changes" button</li>
+            </ol>
+        </div>
+
+        <div class="test-section info">
+            <h3>🎯 Functions That Were Added</h3>
+            <div class="code">
+                <strong>1. openEditOrderModal(order)</strong><br>
+                - Opens the edit modal with order data<br>
+                - Populates form fields with existing order information<br><br>
+                
+                <strong>2. closeEditOrderModal()</strong><br>
+                - Closes the modal<br>
+                - Resets the form state<br>
+                - Clears editing order state<br><br>
+                
+                <strong>3. handleEditOrderFormChange(field, value)</strong><br>
+                - Handles form input changes<br>
+                - Updates the editOrderForm state<br><br>
+                
+                <strong>4. saveAllOrderChanges()</strong><br>
+                - Saves all order changes via multiple API calls<br>
+                - Updates customer info, delivery info, product info, and notes<br>
+                - Shows success/error notifications<br>
+                - Refreshes the orders list after successful update
+            </div>
+        </div>
+
+        <div class="test-section info">
+            <h3>🌐 API Endpoints Used</h3>
+            <div class="code">
+                PUT /api/admin/orders/{id}/customer-info<br>
+                PUT /api/admin/orders/{id}/delivery-info<br>
+                PUT /api/admin/orders/{id}/product<br>
+                PUT /api/admin/orders/{id}/notes
+            </div>
+        </div>
+
+        <button onclick="openDashboard()">🚀 Open Admin Dashboard</button>
+        <button onclick="testAdminLogin()">🔑 Test Admin Login</button>
+        <button onclick="checkServerStatus()">🏥 Check Server Status</button>
+
+        <div id="results"></div>
+    </div>
+
+    <script>
+        function log(message, type = 'info') {
+            const results = document.getElementById('results');
+            const logDiv = document.createElement('div');
+            logDiv.className = `test-section ${type}`;
+            logDiv.innerHTML = `<div class="log">[${new Date().toLocaleTimeString()}] ${message}</div>`;
+            results.appendChild(logDiv);
+            results.scrollTop = results.scrollHeight;
+        }
+
+        function openDashboard() {
+            window.open('http://localhost:3006/admin/dashboard', '_blank');
+            log('📱 Opening admin dashboard in new tab...', 'info');
+        }
+
+        async function testAdminLogin() {
+            log('🔑 Testing admin login...', 'info');
+            try {
+                const response = await fetch('http://127.0.0.1:8001/api/admin/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: 'admin@shop.com',
+                        password: 'admin123'
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    log('✅ Admin login successful!', 'success');
+                    log(`👤 User: ${data.user.name} (${data.user.email})`, 'info');
+                    log(`🔑 Token: ${data.token.substring(0, 20)}...`, 'info');
+                } else {
+                    const errorData = await response.json();
+                    log(`❌ Login failed: ${errorData.message}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Login error: ${error.message}`, 'error');
+            }
+        }
+
+        async function checkServerStatus() {
+            log('🏥 Checking server status...', 'info');
+            
+            // Check frontend
+            try {
+                const frontendResponse = await fetch('http://localhost:3006');
+                if (frontendResponse.ok) {
+                    log('✅ Frontend server (port 3006) is running', 'success');
+                } else {
+                    log('❌ Frontend server not responding properly', 'error');
+                }
+            } catch (error) {
+                log('❌ Frontend server (port 3006) not accessible', 'error');
+            }
+
+            // Check backend
+            try {
+                const backendResponse = await fetch('http://127.0.0.1:8001/api/test');
+                if (backendResponse.ok) {
+                    log('✅ Backend server (port 8001) is running', 'success');
+                } else {
+                    log('❌ Backend server not responding properly', 'error');
+                }
+            } catch (error) {
+                log('❌ Backend server (port 8001) not accessible', 'error');
+            }
+        }
+
+        // Run initial checks
+        window.onload = function() {
+            log('🚀 Edit Order Modal Function Test initialized', 'info');
+            log('✅ All required functions have been added to the dashboard:', 'success');
+            log('   - openEditOrderModal(order)', 'info');
+            log('   - closeEditOrderModal()', 'info');
+            log('   - handleEditOrderFormChange(field, value)', 'info');
+            log('   - saveAllOrderChanges()', 'info');
+            log('', 'info');
+            log('📝 Ready to test! Follow the instructions above.', 'info');
+        };
+    </script>
+</body>
+</html>

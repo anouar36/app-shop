@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🛒 WhatsApp Order Confirmation Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #25D366;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        h2 {
+            color: #2c3e50;
+            border-bottom: 2px solid #25D366;
+            padding-bottom: 10px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #34495e;
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        textarea {
+            height: 100px;
+            resize: vertical;
+        }
+        button {
+            background: #25D366;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background: #20b558;
+        }
+        button.secondary {
+            background: #3498db;
+        }
+        button.secondary:hover {
+            background: #2980b9;
+        }
+        button.warning {
+            background: #f39c12;
+        }
+        button.warning:hover {
+            background: #e67e22;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .api-info {
+            background: #e2e3e5;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .phone-examples {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .phone-examples h4 {
+            margin-top: 0;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <h1>🛒 WhatsApp Order Confirmation System</h1>
+
+    <!-- API Information -->
+    <div class="container">
+        <h2>📋 System Information</h2>
+        <div class="api-info">
+            <strong>WhatsApp Cloud API Endpoint:</strong> https://graph.facebook.com/v19.0/751903787999076/messages<br>
+            <strong>Laravel API Base:</strong> http://localhost:8000/api<br>
+            <strong>Integration:</strong> Automatic WhatsApp confirmation after order creation
+        </div>
+        
+        <div class="info result">
+            <strong>How it works:</strong>
+            1. Customer places an order via your API
+            2. Order is saved to database
+            3. Email notification sent to admin
+            4. WhatsApp confirmation automatically sent to customer's phone
+            5. Customer receives order details via WhatsApp
+        </div>
+    </div>
+
+    <!-- Phone Number Format Examples -->
+    <div class="container">
+        <h2>📱 Phone Number Format Examples</h2>
+        <div class="phone-examples">
+            <h4>Supported formats (automatically converted):</h4>
+            <ul>
+                <li><strong>Morocco local:</strong> 0639383709 → 212639383709</li>
+                <li><strong>International:</strong> +212639383709 → 212639383709</li>
+                <li><strong>With spaces:</strong> +212 639 383 709 → 212639383709</li>
+                <li><strong>With dashes:</strong> 212-639-383-709 → 212639383709</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Quick WhatsApp Test -->
+    <div class="container">
+        <h2>🧪 Quick WhatsApp Test</h2>
+        <div class="form-group">
+            <label>Phone Number (with country code):</label>
+            <input type="text" id="testPhone" value="212639383709" placeholder="212639383709">
+        </div>
+        <div class="form-group">
+            <label>Test Message:</label>
+            <textarea id="testMessage" placeholder="Test message...">🛒 Test message from your shop system!
+
+This is a test to verify WhatsApp integration is working correctly.
+
+If you receive this message, the system is ready! ✅</textarea>
+        </div>
+        <button onclick="testWhatsApp()">📱 Send Test WhatsApp</button>
+        <div id="testResult" class="result" style="display: none;"></div>
+    </div>
+
+    <!-- Order WhatsApp Test -->
+    <div class="container">
+        <h2>📦 Order Confirmation Test</h2>
+        <div class="form-group">
+            <label>Customer Phone:</label>
+            <input type="text" id="orderPhone" value="212639383709" placeholder="212639383709">
+        </div>
+        <div class="form-group">
+            <label>Order ID (optional - leave empty for demo):</label>
+            <input type="number" id="orderId" placeholder="Leave empty for demo order">
+        </div>
+        <button onclick="testOrderWhatsApp()">📦 Send Order Confirmation</button>
+        <div id="orderResult" class="result" style="display: none;"></div>
+    </div>
+
+    <!-- Create Real Order Test -->
+    <div class="container">
+        <h2>🛍️ Create Real Order + WhatsApp</h2>
+        <p><strong>This will create a real order and automatically send WhatsApp confirmation!</strong></p>
+        
+        <div class="form-group">
+            <label>Customer First Name:</label>
+            <input type="text" id="firstName" value="Ahmed" placeholder="Ahmed">
+        </div>
+        <div class="form-group">
+            <label>Customer Last Name:</label>
+            <input type="text" id="lastName" value="Benali" placeholder="Benali">
+        </div>
+        <div class="form-group">
+            <label>Customer Email:</label>
+            <input type="email" id="email" value="ahmed.benali@gmail.com" placeholder="customer@example.com">
+        </div>
+        <div class="form-group">
+            <label>Customer Phone:</label>
+            <input type="text" id="customerPhone" value="212639383709" placeholder="212639383709">
+        </div>
+        <div class="form-group">
+            <label>Product ID:</label>
+            <select id="productId">
+                <option value="1">Product 1</option>
+                <option value="2">Product 2</option>
+                <option value="3">Product 3</option>
+                <option value="4">Product 4</option>
+                <option value="5">Product 5</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Payment Method:</label>
+            <select id="paymentMethod">
+                <option value="cod">Cash on Delivery</option>
+                <option value="online">Online Payment</option>
+            </select>
+        </div>
+        
+        <button onclick="createRealOrder()" class="warning">🛍️ Create Order + Send WhatsApp</button>
+        <div id="realOrderResult" class="result" style="display: none;"></div>
+    </div>
+
+    <!-- Instructions -->
+    <div class="container">
+        <h2>📖 How to Use</h2>
+        <div class="info result">
+<strong>Integration is already complete!</strong>
+
+When customers place orders through your existing API:
+• POST /api/orders
+
+The system will now automatically:
+1. ✅ Create the order in database
+2. 📧 Send email to admin (existing feature)
+3. 📱 Send WhatsApp confirmation to customer (NEW!)
+
+<strong>Phone number in order must include country code or be Moroccan format.</strong>
+
+The WhatsApp message includes:
+• Order number and details
+• Product information
+• Payment method
+• Professional formatting in Arabic/French
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000/api';
+
+        async function testWhatsApp() {
+            const phone = document.getElementById('testPhone').value;
+            const message = document.getElementById('testMessage').value;
+            
+            if (!phone || !message) {
+                showResult('testResult', 'Please fill all fields', 'error');
+                return;
+            }
+            
+            showResult('testResult', 'Sending WhatsApp test message...', 'info');
+            
+            try {
+                const response = await fetch(`${API_BASE}/test-whatsapp`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        phone: phone,
+                        message: message
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showResult('testResult', `✅ WhatsApp message sent successfully!\n\nPhone: ${data.phone_used}\nMessage ID: ${data.data.message_id || 'N/A'}`, 'success');
+                } else {
+                    showResult('testResult', `❌ Failed to send WhatsApp message:\n${JSON.stringify(data.data || data.error, null, 2)}`, 'error');
+                }
+            } catch (error) {
+                showResult('testResult', `❌ Network error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testOrderWhatsApp() {
+            const phone = document.getElementById('orderPhone').value;
+            const orderId = document.getElementById('orderId').value;
+            
+            if (!phone) {
+                showResult('orderResult', 'Please enter a phone number', 'error');
+                return;
+            }
+            
+            showResult('orderResult', 'Sending order confirmation WhatsApp...', 'info');
+            
+            try {
+                const body = { phone: phone };
+                if (orderId) {
+                    body.order_id = orderId;
+                }
+                
+                const response = await fetch(`${API_BASE}/test-whatsapp-order`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(body)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showResult('orderResult', `✅ Order confirmation sent!\n\nCustomer: ${data.order_name}\nPhone: ${data.order_phone}`, 'success');
+                } else {
+                    showResult('orderResult', `❌ Failed to send order confirmation:\n${data.error}`, 'error');
+                }
+            } catch (error) {
+                showResult('orderResult', `❌ Network error: ${error.message}`, 'error');
+            }
+        }
+
+        async function createRealOrder() {
+            const orderData = {
+                products_id: parseInt(document.getElementById('productId').value),
+                client_name: document.getElementById('firstName').value,
+                client_lastname: document.getElementById('lastName').value,
+                email: document.getElementById('email').value,
+                phone: document.getElementById('customerPhone').value,
+                method_payment: document.getElementById('paymentMethod').value === 'cod' ? 'Cash on Delivery' : 'Online Payment',
+                payment_method: document.getElementById('paymentMethod').value
+            };
+            
+            // Validate fields
+            const requiredFields = ['products_id', 'client_name', 'client_lastname', 'email', 'phone'];
+            for (let field of requiredFields) {
+                if (!orderData[field]) {
+                    showResult('realOrderResult', `❌ Please fill the ${field} field`, 'error');
+                    return;
+                }
+            }
+            
+            showResult('realOrderResult', '🛍️ Creating order and sending notifications...', 'info');
+            
+            try {
+                const response = await fetch(`${API_BASE}/orders`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(orderData)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    const order = data.data;
+                    showResult('realOrderResult', 
+                        `✅ Order created successfully!\n\n` +
+                        `📦 Order ID: ${order.order_id}\n` +
+                        `📋 Order Number: ${order.order_number}\n` +
+                        `👤 Customer: ${orderData.client_name} ${orderData.client_lastname}\n` +
+                        `📱 Phone: ${orderData.phone}\n` +
+                        `💰 Payment: ${order.payment_method}\n` +
+                        `📊 Status: ${order.status}\n\n` +
+                        `📧 Admin email notification: SENT\n` +
+                        `📱 WhatsApp confirmation: SENT to customer\n\n` +
+                        `Customer should receive WhatsApp message now! 🎉`, 
+                        'success'
+                    );
+                } else {
+                    showResult('realOrderResult', `❌ Failed to create order:\n${data.message}\n\nErrors: ${JSON.stringify(data.errors || {}, null, 2)}`, 'error');
+                }
+            } catch (error) {
+                showResult('realOrderResult', `❌ Network error: ${error.message}`, 'error');
+            }
+        }
+
+        function showResult(elementId, message, type) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = `result ${type}`;
+            element.style.display = 'block';
+        }
+
+        // Fill sample data on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Sample Moroccan phone numbers for testing
+            const samplePhones = ['212639383709', '212661234567', '212677789456'];
+            const randomPhone = samplePhones[Math.floor(Math.random() * samplePhones.length)];
+            
+            document.getElementById('testPhone').value = randomPhone;
+            document.getElementById('orderPhone').value = randomPhone;
+            document.getElementById('customerPhone').value = randomPhone;
+        });
+    </script>
+</body>
+</html>

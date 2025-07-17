@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚨 Laravel FormData PUT Method Issue Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background-color: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .section { background: white; margin: 20px 0; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .header { background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); color: white; text-align: center; padding: 30px; border-radius: 10px; margin-bottom: 30px; }
+        .critical { border-left: 4px solid #dc3545; background: #fff5f5; padding: 15px; margin: 10px 0; }
+        .success { color: #155724; background-color: #d4edda; border: 1px solid #c3e6cb; padding: 10px; margin: 10px 0; border-radius: 4px; }
+        .error { color: #721c24; background-color: #f8d7da; border: 1px solid #f5c6cb; padding: 10px; margin: 10px 0; border-radius: 4px; }
+        .warning { color: #856404; background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; margin: 10px 0; border-radius: 4px; }
+        .info { color: #0c5460; background-color: #d1ecf1; border: 1px solid #bee5eb; padding: 10px; margin: 10px 0; border-radius: 4px; }
+        button { background: #007bff; color: white; border: none; padding: 10px 20px; margin: 5px; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        button.danger { background: #dc3545; }
+        button.danger:hover { background: #c82333; }
+        input { padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px; width: 200px; }
+        .log-area { background: #f8f9fa; border: 1px solid #dee2e6; padding: 15px; margin: 10px 0; border-radius: 4px; max-height: 400px; overflow-y: auto; font-family: monospace; font-size: 12px; }
+        .test-row { display: flex; gap: 20px; align-items: center; margin: 10px 0; padding: 10px; border: 1px solid #ddd; border-radius: 4px; }
+        .test-label { font-weight: bold; width: 200px; }
+        .test-result { flex: 1; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚨 Laravel FormData PUT Method Issue Test</h1>
+            <p>Testing the critical hypothesis: Laravel may not handle FormData properly in PUT requests</p>
+        </div>
+
+        <div class="section">
+            <h2>🎯 The Problem</h2>
+            <div class="critical">
+                <strong>Hypothesis:</strong> Laravel might not properly parse FormData when sent via PUT method.<br>
+                <strong>Common Issue:</strong> Laravel expects <code>multipart/form-data</code> to use <code>POST</code> with <code>_method=PUT</code> spoofing.<br>
+                <strong>Result:</strong> Files are sent but Laravel doesn't recognize them as uploaded files.
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🔧 Setup</h2>
+            <button onclick="loginAdmin()">1. Login as Admin</button>
+            <div id="authResult"></div>
+        </div>
+
+        <div class="section">
+            <h2>📸 File Selection</h2>
+            <input type="file" id="testFiles" accept="image/*" multiple>
+            <input type="number" id="productId" value="1" placeholder="Product ID">
+        </div>
+
+        <div class="section">
+            <h2>🧪 HTTP Method Tests</h2>
+            <div class="warning">
+                <strong>Testing different HTTP methods to identify the root cause:</strong>
+            </div>
+
+            <div class="test-row">
+                <div class="test-label">Test 1: PUT + FormData</div>
+                <button onclick="testPutFormData()">Test PUT Method</button>
+                <div class="test-result" id="putResult"></div>
+            </div>
+
+            <div class="test-row">
+                <div class="test-label">Test 2: POST + _method=PUT</div>
+                <button onclick="testPostWithMethodSpoofing()">Test POST + _method</button>
+                <div class="test-result" id="spoofResult"></div>
+            </div>
+
+            <div class="test-row">
+                <div class="test-label">Test 3: POST FormData (Control)</div>
+                <button onclick="testPostFormData()">Test POST Method</button>
+                <div class="test-result" id="postResult"></div>
+            </div>
+
+            <div class="test-row">
+                <div class="test-label">Test 4: PUT + JSON (Control)</div>
+                <button onclick="testPutJson()">Test PUT JSON</button>
+                <div class="test-result" id="jsonResult"></div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🔧 Potential Fixes</h2>
+            <div class="warning">
+                <strong>If PUT + FormData fails, here are the potential solutions:</strong>
+                <ol>
+                    <li><strong>Method Spoofing:</strong> Use POST with _method=PUT</li>
+                    <li><strong>Route Change:</strong> Change backend route to accept POST for updates</li>
+                    <li><strong>Separate Endpoint:</strong> Create dedicated image upload endpoint</li>
+                    <li><strong>Base64 Upload:</strong> Convert images to base64 and send as JSON</li>
+                </ol>
+            </div>
+
+            <div class="test-row">
+                <div class="test-label">Fix Test: Method Spoofing</div>
+                <button class="danger" onclick="implementMethodSpoofingFix()">Implement Method Spoofing</button>
+                <div class="test-result" id="fixResult"></div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>📊 Test Log</h2>
+            <div id="testLog" class="log-area"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://127.0.0.1:8001/api';
+        let adminToken = localStorage.getItem('admin_token');
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logArea = document.getElementById('testLog');
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : 'info';
+            logArea.innerHTML += `<div>[${timestamp}] ${message}</div>`;
+            logArea.scrollTop = logArea.scrollHeight;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        function showResult(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : type === 'warning' ? 'warning' : 'info';
+            element.innerHTML = `<div class="${className}">${message}</div>`;
+        }
+
+        async function loginAdmin() {
+            log('🔑 Logging in as admin...');
+            
+            try {
+                const response = await fetch(`${API_BASE}/admin/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: 'admin@admin.com',
+                        password: 'admin123'
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    adminToken = data.token;
+                    localStorage.setItem('admin_token', adminToken);
+                    
+                    log('✅ Admin login successful', 'success');
+                    showResult('authResult', `✅ Authenticated`, 'success');
+                } else {
+                    throw new Error(`Login failed: ${response.status}`);
+                }
+            } catch (error) {
+                log(`❌ Login failed: ${error.message}`, 'error');
+                showResult('authResult', `❌ Login failed`, 'error');
+            }
+        }
+
+        async function testPutFormData() {
+            const files = document.getElementById('testFiles').files;
+            const productId = document.getElementById('productId').value;
+
+            if (!adminToken) {
+                showResult('putResult', '❌ Login first', 'error');
+                return;
+            }
+
+            if (!files.length) {
+                showResult('putResult', '❌ Select files first', 'error');
+                return;
+            }
+
+            log('🧪 Testing PUT + FormData...');
+            showResult('putResult', '🔄 Testing...', 'info');
+
+            try {
+                const formData = new FormData();
+                formData.append('name', 'PUT FormData Test');
+                formData.append('description', 'Testing PUT method with FormData');
+                
+                Array.from(files).forEach((file, idx) => {
+                    formData.append('images[]', file);
+                    log(`  Adding file ${idx + 1}: ${file.name}`);
+                });
+
+                const response = await fetch(`${API_BASE}/products/${productId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${adminToken}`
+                        // No Content-Type - let browser set it
+                    },
+                    body: formData
+                });
+
+                const result = await response.text();
+                log(`PUT FormData response: ${response.status} - ${result}`);
+
+                if (response.ok) {
+                    const data = JSON.parse(result);
+                    const hasImages = data.images && data.images.length > 0;
+                    showResult('putResult', `✅ PUT Works! Images: ${hasImages ? data.images.length : 0}`, hasImages ? 'success' : 'warning');
+                } else {
+                    showResult('putResult', `❌ PUT Failed: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ PUT FormData error: ${error.message}`, 'error');
+                showResult('putResult', `❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testPostWithMethodSpoofing() {
+            const files = document.getElementById('testFiles').files;
+            const productId = document.getElementById('productId').value;
+
+            if (!adminToken) {
+                showResult('spoofResult', '❌ Login first', 'error');
+                return;
+            }
+
+            if (!files.length) {
+                showResult('spoofResult', '❌ Select files first', 'error');
+                return;
+            }
+
+            log('🧪 Testing POST + _method=PUT...');
+            showResult('spoofResult', '🔄 Testing...', 'info');
+
+            try {
+                const formData = new FormData();
+                formData.append('_method', 'PUT');  // Laravel method spoofing
+                formData.append('name', 'POST Method Spoofing Test');
+                formData.append('description', 'Testing POST with _method=PUT');
+                
+                Array.from(files).forEach((file, idx) => {
+                    formData.append('images[]', file);
+                    log(`  Adding file ${idx + 1}: ${file.name}`);
+                });
+
+                const response = await fetch(`${API_BASE}/products/${productId}`, {
+                    method: 'POST',  // Using POST with method spoofing
+                    headers: {
+                        'Authorization': `Bearer ${adminToken}`
+                        // No Content-Type - let browser set it
+                    },
+                    body: formData
+                });
+
+                const result = await response.text();
+                log(`POST + _method response: ${response.status} - ${result}`);
+
+                if (response.ok) {
+                    const data = JSON.parse(result);
+                    const hasImages = data.images && data.images.length > 0;
+                    showResult('spoofResult', `✅ Spoofing Works! Images: ${hasImages ? data.images.length : 0}`, hasImages ? 'success' : 'warning');
+                } else {
+                    showResult('spoofResult', `❌ Spoofing Failed: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ POST + _method error: ${error.message}`, 'error');
+                showResult('spoofResult', `❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testPostFormData() {
+            log('🧪 Testing POST + FormData (control test)...');
+            showResult('postResult', '🔄 Testing...', 'info');
+
+            try {
+                const files = document.getElementById('testFiles').files;
+                const formData = new FormData();
+                formData.append('name', 'POST FormData Control Test');
+                formData.append('category_id', 1);
+                formData.append('price', 99.99);
+                formData.append('current_price', 79.99);
+                formData.append('description', 'Control test using POST method');
+                
+                Array.from(files).forEach((file, idx) => {
+                    formData.append('images[]', file);
+                });
+
+                const response = await fetch(`${API_BASE}/products`, {  // Create endpoint
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${adminToken}`
+                    },
+                    body: formData
+                });
+
+                const result = await response.text();
+                log(`POST FormData response: ${response.status} - ${result}`);
+
+                if (response.ok) {
+                    const data = JSON.parse(result);
+                    const hasImages = data.images && data.images.length > 0;
+                    showResult('postResult', `✅ POST Works! Images: ${hasImages ? data.images.length : 0}`, hasImages ? 'success' : 'warning');
+                } else {
+                    showResult('postResult', `❌ POST Failed: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ POST FormData error: ${error.message}`, 'error');
+                showResult('postResult', `❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testPutJson() {
+            const productId = document.getElementById('productId').value;
+
+            if (!adminToken) {
+                showResult('jsonResult', '❌ Login first', 'error');
+                return;
+            }
+
+            log('🧪 Testing PUT + JSON (control test)...');
+            showResult('jsonResult', '🔄 Testing...', 'info');
+
+            try {
+                const response = await fetch(`${API_BASE}/products/${productId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${adminToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: 'PUT JSON Control Test',
+                        description: 'Control test using PUT with JSON'
+                    })
+                });
+
+                const result = await response.text();
+                log(`PUT JSON response: ${response.status} - ${result}`);
+
+                if (response.ok) {
+                    showResult('jsonResult', `✅ PUT JSON Works!`, 'success');
+                } else {
+                    showResult('jsonResult', `❌ PUT JSON Failed: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ PUT JSON error: ${error.message}`, 'error');
+                showResult('jsonResult', `❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function implementMethodSpoofingFix() {
+            log('🔧 Implementing method spoofing fix in dashboard...');
+            showResult('fixResult', '🔄 Implementing fix...', 'info');
+
+            // This would show the code changes needed
+            const fixCode = `
+// DASHBOARD FIX: Change PUT to POST with _method spoofing
+
+// CURRENT CODE (not working):
+const response = await fetch(\`\${API_BASE}/products/\${productId}\`, {
+    method: 'PUT',
+    headers: { 'Authorization': \`Bearer \${token}\` },
+    body: formData
+});
+
+// FIXED CODE (should work):
+const formData = new FormData();
+formData.append('_method', 'PUT');  // Add method spoofing
+// ... other form fields ...
+
+const response = await fetch(\`\${API_BASE}/products/\${productId}\`, {
+    method: 'POST',  // Use POST instead of PUT
+    headers: { 'Authorization': \`Bearer \${token}\` },
+    body: formData
+});`;
+
+            log('📝 Fix implementation details:');
+            log('1. Change fetch method from PUT to POST');
+            log('2. Add _method=PUT to FormData');
+            log('3. Laravel will recognize this as a PUT request');
+            
+            showResult('fixResult', `
+                <div class="warning">
+                    <strong>Fix Required:</strong><br>
+                    1. Open dashboard/page.js<br>
+                    2. Find the saveProductChanges function<br>
+                    3. Change method: 'PUT' to method: 'POST'<br>
+                    4. Add formData.append('_method', 'PUT')<br>
+                    <br>
+                    <strong>This will fix the image upload issue!</strong>
+                </div>
+            `, 'warning');
+        }
+
+        // Initialize
+        window.onload = function() {
+            log('🚀 Laravel FormData PUT Issue Test initialized');
+            if (adminToken) {
+                showResult('authResult', `✅ Using existing token`, 'success');
+            }
+        };
+    </script>
+</body>
+</html>
