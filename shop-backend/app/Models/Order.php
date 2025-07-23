@@ -71,4 +71,12 @@ class Order extends Model
     {
         return $this->hasMany(Interaction::class, 'order_id');
     }
+
+    /**
+     * Get all of the WhatsApp messages for the Order
+     */
+    public function whatsappMessages()
+    {
+        return $this->hasMany(WhatsappMessage::class);
+    }
 }

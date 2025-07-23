@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\WhatsAppController;
 
 // Test route
 Route::get('/test', function () {                                                                                                                                        
@@ -137,8 +138,12 @@ Route::post('/test-whatsapp-order', function (Request $request) {
             $order->id = 999;
             $order->client_name = 'Test';
             $order->client_lastname = 'Customer';
+            $order->email = 'test@example.com';
             $order->phone = $request->input('phone', '212639383709');
+            $order->delivery_address = '123 Test Street, Test City, Morocco';
             $order->payment_method = 'cod';
+            $order->status = 'pending';
+            $order->total_price = 299.99;
             
             // Create fake product
             $product = new \App\Models\Product();
@@ -147,7 +152,7 @@ Route::post('/test-whatsapp-order', function (Request $request) {
             $order->setRelation('product', $product);
         }
         
-        $result = $whatsappService->sendOrderConfirmation($order);
+        $result = $whatsappService->sendOrderConfirmationTemplate($order);
         
         return response()->json([
             'success' => $result,
@@ -201,6 +206,7 @@ Route::get('products', function () {
         return response()->json(['error' => $e->getMessage()], 500);
     }
 });
+Route::get('products/{product}', [ProductController::class, 'show']);
 Route::post('products', [ProductController::class, 'store']);
 Route::apiResource('categories', CategoryController::class);
 
@@ -269,4 +275,172 @@ Route::middleware(['auth:sanctum', 'admin'])->group(function () {
             ]);
         });
     });
+});
+
+// Debug route to check admin user
+Route::get('/debug-admin', function () {
+    try {
+        $user = \App\Models\User::where('email', 'admin@shop.com')->first();
+        
+        if (!$user) {
+            return response()->json([
+                'error' => 'Admin user not found',
+                'all_users' => \App\Models\User::all()->map(function($u) {
+                    return [
+                        'id' => $u->id,
+                        'email' => $u->email,
+                        'name' => $u->name,
+                        'id_role' => $u->id_role
+                    ];
+                })
+            ]);
+        }
+        
+        $roleData = null;
+        try {
+            $roleData = $user->role;
+        } catch (Exception $e) {
+            $roleData = 'Error loading role: ' . $e->getMessage();
+        }
+        
+        return response()->json([
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'id_role' => $user->id_role,
+                'role_data' => $roleData
+            ],
+            'all_roles' => \App\Models\Role::all()
+        ]);
+    } catch (Exception $e) {
+        return response()->json([
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ], 500);
+    }
+});
+
+// WhatsApp Integration Routes
+Route::get('/whatsapp/webhook', [WhatsAppController::class, 'verify']);
+Route::post('/whatsapp/webhook', [WhatsAppController::class, 'webhook']);
+Route::post('/whatsapp/test', [WhatsAppController::class, 'sendTest']);
+
+// WhatsApp Auto-Confirmation Testing Route
+Route::post('/test-whatsapp-auto-confirm', function () {
+    try {
+        $autoConfirmService = new \App\Services\WhatsAppAutoConfirmService();
+        $processedCount = $autoConfirmService->processAutoConfirmations();
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Auto-confirmation process completed',
+            'processed_count' => $processedCount,
+            'timestamp' => now()->toDateTimeString()
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage()
+        ], 500);
+    }
+});
+
+// WhatsApp REAL-TIME Confirmation Testing Route
+Route::post('/test-whatsapp-realtime', function () {
+    try {
+        $realTimeService = new \App\Services\WhatsAppRealTimeService();
+        $processedCount = $realTimeService->processRealTimeConfirmations();
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'REAL-TIME confirmation process completed',
+            'type' => 'INSTANT_PROCESSING',
+            'processed_count' => $processedCount,
+            'timestamp' => now()->toDateTimeString()
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage()
+        ], 500);
+    }
+});
+
+// AI Agent Order Monitoring Routes
+Route::post('/ai-agent/status', function () {
+    try {
+        $excelService = new \App\Services\OrderExcelExportService();
+        $aiAgent = new \App\Services\OrderMonitoringAIAgent($excelService);
+        
+        $status = $aiAgent->getStatus();
+        
+        return response()->json([
+            'success' => true,
+            'ai_agent_status' => $status
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage()
+        ], 500);
+    }
+});
+
+Route::post('/ai-agent/force-report', function () {
+    try {
+        $excelService = new \App\Services\OrderExcelExportService();
+        $aiAgent = new \App\Services\OrderMonitoringAIAgent($excelService);
+        
+        $result = $aiAgent->forceSendReport();
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'AI Agent force report executed',
+            'result' => $result
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage()
+        ], 500);
+    }
+});
+
+Route::post('/ai-agent/test-export', function () {
+    try {
+        $excelService = new \App\Services\OrderExcelExportService();
+        
+        // Get processing orders
+        $orders = $excelService->getProcessingOrders();
+        
+        if ($orders->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No processing orders found to export',
+                'total_orders' => \App\Models\Order::count(),
+                'by_status' => \App\Models\Order::groupBy('status')->selectRaw('status, count(*) as count')->get()
+            ]);
+        }
+        
+        // Generate Excel file
+        $filePath = $excelService->generateExcelFile($orders);
+        $summary = $excelService->getReportSummary($orders);
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Excel file generated successfully',
+            'file_path' => $filePath,
+            'file_exists' => file_exists($filePath),
+            'file_size' => file_exists($filePath) ? filesize($filePath) : 0,
+            'orders_count' => $orders->count(),
+            'summary' => $summary
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ], 500);
+    }
 });

@@ -5,7 +5,7 @@
 ### **The Problem:**
 Laravel **does NOT properly handle FormData in PUT requests**. This is a well-known limitation where:
 - **PUT + FormData** = Files are sent but Laravel doesn't recognize them (`has_files: false`)
-- **POST + FormData** = Files are properly recognized and processed
+- **POST + FormData** = Files are properly recognized and processed  
 
 ### **Technical Details:**
 - **Frontend**: Dashboard was sending `method: 'PUT'` with FormData

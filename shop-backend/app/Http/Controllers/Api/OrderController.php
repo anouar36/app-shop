@@ -12,6 +12,7 @@ use App\Mail\EnhancedOrderNotification;
 use App\Services\WhatsAppService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\ValidationException;
 
 class OrderController extends Controller
@@ -382,11 +383,32 @@ class OrderController extends Controller
 
             // Send WhatsApp confirmation to client
             try {
-                $whatsappService = new WhatsAppService();
-                $whatsappSent = $whatsappService->sendOrderConfirmation($order);
+                $whatsappSent = $this->sendWhatsAppOrderConfirmation($order);
                 
                 if ($whatsappSent) {
                     \Log::info('WhatsApp order confirmation sent to client', [
+                        'order_id' => $order->id,
+                        'client_phone' => $order->phone,
+                        'message_sent' => true
+                    ]);
+                    
+                    // Track sent WhatsApp message for REAL-TIME confirmation system
+                    $autoConfirmService = new \App\Services\WhatsAppAutoConfirmService();
+                    $autoConfirmService->trackSentMessage($order, 'order_confirmation');
+                    
+                    // Also track for real-time processing
+                    $realTimeService = new \App\Services\WhatsAppRealTimeService();
+                    $realTimeService->trackSentMessage($order, 'order_confirmation');
+                } else {
+                    \Log::warning('WhatsApp order confirmation failed', [
+                        'order_id' => $order->id,
+                        'client_phone' => $order->phone,
+                        'message_sent' => false
+                    ]);
+                }
+                
+                if ($whatsappSent) {
+                    \Log::info('WhatsApp order confirmation template sent to client', [
                         'order_id' => $order->id,
                         'client_phone' => $order->phone,
                         'client_name' => $order->client_name . ' ' . $order->client_lastname
@@ -394,7 +416,7 @@ class OrderController extends Controller
                 }
             } catch (\Exception $whatsappError) {
                 // Log WhatsApp error but don't fail the order creation
-                \Log::error('Failed to send WhatsApp order confirmation', [
+                \Log::error('Failed to send WhatsApp order confirmation template', [
                     'order_id' => $order->id,
                     'client_phone' => $order->phone,
                     'error' => $whatsappError->getMessage()
@@ -978,5 +1000,120 @@ class OrderController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Send WhatsApp order confirmation directly
+     */
+    private function sendWhatsAppOrderConfirmation($order)
+    {
+        if (!env('WHATSAPP_ENABLED', true)) {
+            \Log::info('WhatsApp is disabled in configuration');
+            return false;
+        }
+
+        try {
+            // Format phone number for WhatsApp
+            $clientPhone = $this->formatPhoneNumber($order->phone);
+            
+            if (!$clientPhone) {
+                \Log::warning('WhatsApp notification skipped - invalid phone number', [
+                    'order_id' => $order->id,
+                    'original_phone' => $order->phone
+                ]);
+                return false;
+            }
+
+            // Create the WhatsApp message
+            $clientName = trim($order->client_name . ' ' . $order->client_lastname);
+            $message = "🛒 *Order Confirmation*\n\n";
+            $message .= "Hello *{$clientName}*!\n\n";
+            $message .= "Your order has been received:\n\n";
+            $message .= "📋 *Order Details:*\n";
+            $message .= "• Order #" . $order->id . "\n";
+            
+            if ($order->products_id && $order->product) {
+                $message .= "• Product: " . $order->product->name . "\n";
+                $message .= "• Quantity: " . ($order->quantity ?? 1) . "\n";
+                $message .= "• Price: " . number_format($order->product->current_price ?? $order->product->price ?? 0, 2) . " DH\n";
+            }
+            
+            $message .= "• Status: " . ucfirst($order->status ?? 'pending') . "\n";
+            $message .= "• Payment: " . ($order->method_payment ?? 'Not specified') . "\n\n";
+            $message .= "Please reply with:\n";
+            $message .= "✅ Type *CONFIRM* to confirm your order\n";
+            $message .= "❌ Type *CANCEL* to cancel your order\n\n";
+            $message .= "Thank you for shopping with us! 🛍️";
+
+            // Send WhatsApp message using Laravel HTTP client
+            $endpoint = env('WHATSAPP_ENDPOINT', 'https://graph.facebook.com/v19.0/751903787999076/messages');
+            $accessToken = env('WHATSAPP_ACCESS_TOKEN', 'EAAI67Ip2YMcBPPatSMMXRZCbcaCWGB6hyyJKRBZBOYFSZB3qsmidKX8xt1JixjojxB34OxkjERLXphrGxcWLEXdZB7VpIx4OZBag2kk7dSZBLE7ept7NntgMXQqiBYsY1wrIZB1QPpuQFaQWOCZCzPZB8POswTxSAL1cb3ZC3GVKwtm4CSz0NDiNdZBsNk5vu7N40WU');
+
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $accessToken,
+                'Content-Type' => 'application/json'
+            ])->post($endpoint, [
+                'messaging_product' => 'whatsapp',
+                'to' => $clientPhone,
+                'type' => 'text',
+                'text' => [
+                    'body' => $message
+                ]
+            ]);
+
+            if ($response->successful()) {
+                \Log::info('WhatsApp order confirmation sent successfully', [
+                    'order_id' => $order->id,
+                    'phone' => $clientPhone,
+                    'message_id' => $response->json('messages.0.id') ?? 'unknown'
+                ]);
+                return true;
+            } else {
+                $errorData = $response->json();
+                \Log::error('WhatsApp message API error', [
+                    'order_id' => $order->id,
+                    'phone' => $clientPhone,
+                    'status' => $response->status(),
+                    'response' => $errorData
+                ]);
+                return false;
+            }
+
+        } catch (\Exception $e) {
+            \Log::error('WhatsApp service exception', [
+                'order_id' => $order->id,
+                'error' => $e->getMessage()
+            ]);
+            return false;
+        }
+    }
+
+    /**
+     * Format phone number for WhatsApp (ensure it has country code)
+     */
+    private function formatPhoneNumber($phone)
+    {
+        if (empty($phone)) {
+            return null;
+        }
+
+        // Remove all non-digit characters
+        $phone = preg_replace('/[^0-9]/', '', $phone);
+
+        // If phone starts with 0 (local format), assume Morocco and add 212
+        if (substr($phone, 0, 1) === '0') {
+            $phone = '212' . substr($phone, 1);
+        }
+        // If phone doesn't start with country code, assume Morocco
+        elseif (strlen($phone) === 9 && !str_starts_with($phone, '212')) {
+            $phone = '212' . $phone;
+        }
+
+        // Validate phone number length (should be 12-15 digits with country code)
+        if (strlen($phone) < 10 || strlen($phone) > 15) {
+            return null;
+        }
+
+        return $phone;
     }
 }

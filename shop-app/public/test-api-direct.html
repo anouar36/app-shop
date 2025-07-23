@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Direct API Test</title>
+    <meta charset="UTF-8">
+</head>
+<body>
+    <h1>Direct API Test</h1>
+    <button onclick="testAPI()">Test API</button>
+    <div id="results"></div>
+    
+    <script>
+        async function testAPI() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<p>Testing API...</p>';
+            
+            try {
+                // Test direct API call
+                const response = await fetch('http://127.0.0.1:8001/api/products', {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                console.log('Response status:', response.status);
+                console.log('Response headers:', response.headers);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('API Data:', data);
+                    
+                    resultsDiv.innerHTML = `
+                        <p>✅ Success! Found ${data.length} products</p>
+                        <h3>Products:</h3>
+                        <ul>
+                            ${data.map(product => `
+                                <li>
+                                    <strong>${product.name}</strong> - $${product.current_price || product.price}
+                                    <br>Image: ${product.image || (product.images && product.images[0]) || 'No image'}
+                                    <br>Category: ${product.category ? product.category.name : 'No category'}
+                                </li>
+                            `).join('')}
+                        </ul>
+                    `;
+                } else {
+                    resultsDiv.innerHTML = `<p>❌ Error: ${response.status} ${response.statusText}</p>`;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                resultsDiv.innerHTML = `<p>❌ Network Error: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>

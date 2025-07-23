@@ -1,0 +1,137 @@
+/* Mobile-First Responsive Styles for Product Detail Page */
+
+/* Hide scrollbar but keep functionality */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Smooth image transitions */
+.image-transition {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Responsive text sizing */
+@media (max-width: 640px) {
+  .responsive-text-lg {
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+  }
+  
+  .responsive-text-xl {
+    font-size: 1.25rem;
+    line-height: 1.75rem;
+  }
+  
+  .responsive-text-2xl {
+    font-size: 1.5rem;
+    line-height: 2rem;
+  }
+  
+  .responsive-text-3xl {
+    font-size: 1.875rem;
+    line-height: 2.25rem;
+  }
+}
+
+/* Touch-friendly button sizing */
+@media (max-width: 768px) {
+  .touch-button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Optimize images for mobile */
+.mobile-image {
+  max-height: 60vh;
+  width: 100%;
+  object-fit: contain;
+}
+
+/* Better spacing for mobile */
+@media (max-width: 640px) {
+  .mobile-spacing {
+    padding: 0.75rem;
+  }
+  
+  .mobile-gap {
+    gap: 0.5rem;
+  }
+}
+
+/* Improved thumbnail gallery for mobile */
+.thumbnail-container {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.75rem;
+  scroll-snap-type: x mandatory;
+}
+
+.thumbnail-item {
+  flex-shrink: 0;
+  scroll-snap-align: start;
+}
+
+/* Better form elements for mobile */
+@media (max-width: 640px) {
+  .mobile-form-select {
+    font-size: 16px; /* Prevents zoom on iOS */
+    padding: 0.75rem;
+  }
+}
+
+/* Responsive grid adjustments */
+@media (max-width: 1024px) {
+  .product-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .product-grid {
+    grid-template-columns: 1fr 2fr;
+    gap: 2rem;
+  }
+}
+
+/* Sticky header optimization */
+.sticky-header {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* Better focus states for accessibility */
+.focus-visible:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 2px;
+}
+
+/* Animation performance optimizations */
+.will-change-transform {
+  will-change: transform;
+}
+
+.will-change-opacity {
+  will-change: opacity;
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  .image-transition,
+  .animate-pulse,
+  .animate-spin,
+  .transition-all,
+  .transition-transform,
+  .transition-opacity {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

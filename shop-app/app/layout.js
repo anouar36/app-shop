@@ -1,15 +1,20 @@
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
+import Script from 'next/script';
 
-const geistSans = Geist({
+const inter = Inter({
   variable: "--font-geist-sans",
   subsets: ["latin"],
+  display: 'swap',
+  fallback: ['system-ui', 'arial'],
 });
 
-const geistMono = Geist_Mono({
+const jetbrainsMono = JetBrains_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  display: 'swap',
+  fallback: ['monospace'],
 });
 
 export const metadata = {
@@ -21,11 +26,39 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${inter.variable} ${jetbrainsMono.variable} antialiased`}
         suppressHydrationWarning={true}
       >
         {children}
         <Toaster />
+        
+        {/* Script to remove BitDefender and similar security extension attributes */}
+        <Script id="clean-attributes" strategy="afterInteractive">
+          {`
+            (function() {
+              // Remove any existing bis_skin_checked attributes
+              const elements = document.querySelectorAll('[bis_skin_checked]');
+              elements.forEach(el => el.removeAttribute('bis_skin_checked'));
+              
+              // Create a MutationObserver to remove any new bis_skin_checked attributes
+              const observer = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                  if (mutation.type === 'attributes' && 
+                      mutation.attributeName === 'bis_skin_checked') {
+                    mutation.target.removeAttribute('bis_skin_checked');
+                  }
+                });
+              });
+              
+              // Start observing the document
+              observer.observe(document.body, {
+                attributes: true,
+                subtree: true,
+                attributeFilter: ['bis_skin_checked']
+              });
+            })();
+          `}
+        </Script>
       </body>
     </html>
   );

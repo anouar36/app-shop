@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Product Landing Page - Image Animations Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            padding: 30px;
+        }
+
+        .title {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            font-weight: 700;
+        }
+
+        .product-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+
+        .image-gallery {
+            position: relative;
+        }
+
+        .main-image-container {
+            position: relative;
+            aspect-ratio: 1;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            margin-bottom: 20px;
+            cursor: zoom-in;
+            transition: all 0.3s ease;
+        }
+
+        .main-image-container:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+        }
+
+        .main-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            transform-origin: center;
+        }
+
+        .main-image:hover {
+            transform: scale(1.2) rotate(1deg);
+            filter: brightness(1.1) contrast(1.05);
+        }
+
+        .main-image.changing {
+            opacity: 0;
+            transform: scale(0.9) rotate(-1deg);
+            filter: blur(8px);
+        }
+
+        .discount-badge {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 25px;
+            font-weight: bold;
+            font-size: 14px;
+            z-index: 10;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .zoom-indicator {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(255,255,255,0.9);
+            color: #333;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 10;
+        }
+
+        .main-image-container:hover .zoom-indicator {
+            opacity: 1;
+            transform: scale(1.1);
+        }
+
+        .thumbnails {
+            display: flex;
+            gap: 12px;
+            overflow-x: auto;
+            padding-bottom: 10px;
+        }
+
+        .thumbnail {
+            flex-shrink: 0;
+            width: 80px;
+            height: 80px;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 3px solid transparent;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .thumbnail:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+
+        .thumbnail.active {
+            border-color: #667eea;
+            transform: scale(1.1);
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.3);
+        }
+
+        .thumbnail img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: all 0.5s ease;
+        }
+
+        .thumbnail:hover img {
+            transform: scale(1.15);
+            filter: brightness(1.1);
+        }
+
+        .product-info {
+            padding: 20px;
+        }
+
+        .product-title {
+            font-size: 2em;
+            color: #333;
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+
+        .product-price {
+            font-size: 1.8em;
+            color: #667eea;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .product-description {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 25px;
+        }
+
+        .features-list {
+            list-style: none;
+            margin-bottom: 30px;
+        }
+
+        .features-list li {
+            padding: 8px 0;
+            position: relative;
+            padding-left: 25px;
+            color: #555;
+        }
+
+        .features-list li:before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-right: 15px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255,255,255,0.95);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 20;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .loading-overlay.show {
+            opacity: 1;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .demo-info {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            border-left: 4px solid #667eea;
+        }
+
+        .demo-info h3 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .demo-info ul {
+            color: #666;
+            padding-left: 20px;
+        }
+
+        .demo-info li {
+            margin-bottom: 8px;
+        }
+
+        @media (max-width: 768px) {
+            .product-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .main-image:hover {
+                transform: scale(1.1);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="title">🚀 Enhanced Product Landing Page</h1>
+        
+        <div class="demo-info">
+            <h3>✨ Enhanced Features Implemented:</h3>
+            <ul>
+                <li><strong>Fake/Placeholder Images:</strong> Products without images automatically use high-quality placeholders</li>
+                <li><strong>Smooth Image Transitions:</strong> Fade, scale, and blur effects when changing images</li>
+                <li><strong>Hover Zoom Effects:</strong> Images zoom and brighten on mouse hover</li>
+                <li><strong>Preloading System:</strong> Images are preloaded for instant transitions</li>
+                <li><strong>Keyboard Navigation:</strong> Use arrow keys to navigate between images</li>
+                <li><strong>Auto-rotate:</strong> Images automatically rotate after 10 seconds of inactivity</li>
+                <li><strong>Responsive Design:</strong> Works perfectly on all devices</li>
+            </ul>
+        </div>
+
+        <div class="product-grid">
+            <div class="image-gallery">
+                <div class="main-image-container">
+                    <div class="loading-overlay" id="loading-overlay">
+                        <div class="spinner"></div>
+                    </div>
+                    <img src="" alt="Product Image" class="main-image" id="main-image">
+                    <div class="discount-badge">-50% OFF</div>
+                    <div class="zoom-indicator">🔍 Hover to Zoom</div>
+                </div>
+                
+                <div class="thumbnails" id="thumbnails">
+                    <!-- Thumbnails will be populated by JavaScript -->
+                </div>
+            </div>
+
+            <div class="product-info">
+                <h2 class="product-title">Premium Wireless Headphones</h2>
+                <div class="product-price">$199.99 <span style="text-decoration: line-through; color: #999; font-size: 0.8em;">$299.99</span></div>
+                
+                <p class="product-description">
+                    Experience superior sound quality with our premium wireless headphones featuring 
+                    active noise cancellation, 30-hour battery life, and ultimate comfort padding.
+                </p>
+
+                <ul class="features-list">
+                    <li>Active Noise Cancellation Technology</li>
+                    <li>30-hour Extended Battery Life</li>
+                    <li>Premium Comfort Padding</li>
+                    <li>Bluetooth 5.0 Connectivity</li>
+                    <li>Quick Charge (15 min = 3 hours)</li>
+                    <li>Foldable Design for Travel</li>
+                </ul>
+
+                <button class="btn">Add to Cart</button>
+                <button class="btn">Buy Now</button>
+            </div>
+        </div>
+
+        <div style="text-align: center; color: #666; margin-top: 30px;">
+            <p><strong>🎯 Test Instructions:</strong> Click thumbnails to change images, hover over main image to zoom, use arrow keys for navigation!</p>
+        </div>
+    </div>
+
+    <script>
+        // Enhanced fake image generator
+        function generatePlaceholderImages(category = 'electronics') {
+            const colors = ['FF6B6B', '4ECDC4', '45B7D1', '96CEB4', 'FFEAA7', 'DDA0DD', 'F8C471', '82E0AA'];
+            const categoryImages = {
+                electronics: [
+                    `https://picsum.photos/600/600?random=1&blur=1`,
+                    `https://via.placeholder.com/600x600/${colors[0]}/ffffff?text=📱+Electronics`,
+                    `https://via.placeholder.com/600x600/${colors[1]}/ffffff?text=⚡+Tech+Device`,
+                    `https://via.placeholder.com/600x600/${colors[2]}/ffffff?text=🎧+Audio+Device`,
+                    `https://picsum.photos/600/600?random=2&grayscale`
+                ]
+            };
+            return categoryImages[category] || categoryImages.electronics;
+        }
+
+        class ProductImageGallery {
+            constructor() {
+                this.images = generatePlaceholderImages('electronics');
+                this.currentIndex = 0;
+                this.isChanging = false;
+                this.init();
+            }
+
+            init() {
+                this.renderThumbnails();
+                this.loadImage(0);
+                this.bindEvents();
+                this.startAutoRotate();
+            }
+
+            renderThumbnails() {
+                const thumbnailsContainer = document.getElementById('thumbnails');
+                thumbnailsContainer.innerHTML = '';
+                
+                this.images.forEach((image, index) => {
+                    const thumbnail = document.createElement('div');
+                    thumbnail.className = `thumbnail ${index === 0 ? 'active' : ''}`;
+                    thumbnail.innerHTML = `<img src="${image}" alt="Thumbnail ${index + 1}">`;
+                    thumbnail.addEventListener('click', () => this.changeImage(index));
+                    thumbnailsContainer.appendChild(thumbnail);
+                });
+            }
+
+            changeImage(index) {
+                if (index === this.currentIndex || this.isChanging) return;
+                
+                this.isChanging = true;
+                const mainImage = document.getElementById('main-image');
+                const loadingOverlay = document.getElementById('loading-overlay');
+                
+                // Show loading
+                loadingOverlay.classList.add('show');
+                mainImage.classList.add('changing');
+                
+                // Preload new image
+                const newImage = new Image();
+                newImage.onload = () => {
+                    setTimeout(() => {
+                        mainImage.src = this.images[index];
+                        mainImage.classList.remove('changing');
+                        loadingOverlay.classList.remove('show');
+                        this.updateThumbnails(index);
+                        this.currentIndex = index;
+                        this.isChanging = false;
+                    }, 300);
+                };
+                newImage.src = this.images[index];
+            }
+
+            loadImage(index) {
+                const mainImage = document.getElementById('main-image');
+                mainImage.src = this.images[index];
+                this.updateThumbnails(index);
+            }
+
+            updateThumbnails(activeIndex) {
+                const thumbnails = document.querySelectorAll('.thumbnail');
+                thumbnails.forEach((thumb, index) => {
+                    thumb.classList.toggle('active', index === activeIndex);
+                });
+            }
+
+            bindEvents() {
+                // Keyboard navigation
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'ArrowLeft') {
+                        const prevIndex = this.currentIndex > 0 ? this.currentIndex - 1 : this.images.length - 1;
+                        this.changeImage(prevIndex);
+                    } else if (e.key === 'ArrowRight') {
+                        const nextIndex = this.currentIndex < this.images.length - 1 ? this.currentIndex + 1 : 0;
+                        this.changeImage(nextIndex);
+                    }
+                });
+
+                // Stop auto-rotate on user interaction
+                document.addEventListener('click', () => {
+                    this.resetAutoRotate();
+                });
+
+                document.addEventListener('keydown', () => {
+                    this.resetAutoRotate();
+                });
+            }
+
+            startAutoRotate() {
+                this.autoRotateTimer = setTimeout(() => {
+                    this.autoRotateInterval = setInterval(() => {
+                        if (!this.isChanging) {
+                            const nextIndex = (this.currentIndex + 1) % this.images.length;
+                            this.changeImage(nextIndex);
+                        }
+                    }, 3000);
+                }, 10000);
+            }
+
+            resetAutoRotate() {
+                if (this.autoRotateTimer) {
+                    clearTimeout(this.autoRotateTimer);
+                }
+                if (this.autoRotateInterval) {
+                    clearInterval(this.autoRotateInterval);
+                }
+                this.startAutoRotate();
+            }
+        }
+
+        // Initialize the gallery when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new ProductImageGallery();
+        });
+    </script>
+</body>
+</html>

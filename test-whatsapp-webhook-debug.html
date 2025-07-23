@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp Webhook Debug - Order Status Issue</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .success { 
+            background: #d4edda; 
+            color: #155724; 
+            padding: 15px; 
+            border-radius: 5px; 
+            margin: 10px 0; 
+        }
+        .error { 
+            background: #f8d7da; 
+            color: #721c24; 
+            padding: 15px; 
+            border-radius: 5px; 
+            margin: 10px 0; 
+        }
+        .info { 
+            background: #d1ecf1; 
+            color: #0c5460; 
+            padding: 15px; 
+            border-radius: 5px; 
+            margin: 10px 0; 
+        }
+        .warning { 
+            background: #fff3cd; 
+            color: #856404; 
+            padding: 15px; 
+            border-radius: 5px; 
+            margin: 10px 0; 
+        }
+        button {
+            background: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        .btn-success { background: #28a745; }
+        .btn-success:hover { background: #1e7e34; }
+        .btn-warning { background: #ffc107; color: #212529; }
+        .btn-warning:hover { background: #e0a800; }
+        .btn-danger { background: #dc3545; }
+        .btn-danger:hover { background: #c82333; }
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        .form-group {
+            margin: 15px 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .result {
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background: #f9f9f9;
+            min-height: 50px;
+            white-space: pre-wrap;
+        }
+        .json-display {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 5px;
+            padding: 15px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            overflow-x: auto;
+            max-height: 400px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 WhatsApp Webhook Debug Tool</h1>
+        <p><strong>Issue:</strong> Orders stay in "New" status even after customers reply "CONFIRM" on WhatsApp</p>
+        
+        <div class="warning">
+            <strong>Problem Analysis:</strong><br>
+            • Orders created successfully with "new" status ✅<br>
+            • WhatsApp messages sent to customers ✅<br>
+            • But when customers reply "CONFIRM", status doesn't update to "processing" ❌
+        </div>
+    </div>
+
+    <!-- Test Webhook Verification -->
+    <div class="container">
+        <h2>1️⃣ Test Webhook Verification</h2>
+        <p>First, let's verify the webhook endpoint is working correctly.</p>
+        
+        <button onclick="testWebhookVerification()">🔗 Test Webhook Verification</button>
+        <div id="webhookVerifyResult" class="result"></div>
+    </div>
+
+    <!-- Simulate WhatsApp CONFIRM Message -->
+    <div class="container">
+        <h2>2️⃣ Simulate WhatsApp "CONFIRM" Message</h2>
+        <p>Test the webhook handler with a simulated WhatsApp "CONFIRM" message.</p>
+        
+        <div class="form-group">
+            <label>Customer Phone Number (who will send CONFIRM):</label>
+            <input type="tel" id="customerPhone" value="212639383709" placeholder="212639383709">
+        </div>
+        
+        <div class="form-group">
+            <label>Message Text:</label>
+            <input type="text" id="messageText" value="CONFIRM" placeholder="CONFIRM">
+        </div>
+        
+        <button onclick="simulateWhatsAppConfirm()" class="btn-success">📱 Simulate WhatsApp CONFIRM</button>
+        <div id="confirmResult" class="result"></div>
+    </div>
+
+    <!-- Check Recent Orders -->
+    <div class="container">
+        <h2>3️⃣ Check Recent Orders Status</h2>
+        <p>Let's check the current status of recent orders.</p>
+        
+        <button onclick="checkRecentOrders()">📋 Check Recent Orders</button>
+        <div id="ordersResult" class="result"></div>
+    </div>
+
+    <!-- Create Test Order -->
+    <div class="container">
+        <h2>4️⃣ Create Test Order for Debugging</h2>
+        <p>Create a new test order to verify the complete flow.</p>
+        
+        <div class="grid">
+            <div>
+                <div class="form-group">
+                    <label>Customer Name:</label>
+                    <input type="text" id="testName" value="Test" placeholder="Test">
+                </div>
+                <div class="form-group">
+                    <label>Customer Last Name:</label>
+                    <input type="text" id="testLastname" value="Customer" placeholder="Customer">
+                </div>
+                <div class="form-group">
+                    <label>Email:</label>
+                    <input type="email" id="testEmail" value="test@example.com" placeholder="test@example.com">
+                </div>
+            </div>
+            <div>
+                <div class="form-group">
+                    <label>Phone:</label>
+                    <input type="tel" id="testOrderPhone" value="212639383709" placeholder="212639383709">
+                </div>
+                <div class="form-group">
+                    <label>Product ID:</label>
+                    <input type="number" id="testProductId" value="1" placeholder="1">
+                </div>
+                <div class="form-group">
+                    <label>Payment Method:</label>
+                    <select id="testPayment">
+                        <option value="cod">Cash on Delivery</option>
+                        <option value="online">Online Payment</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        
+        <button onclick="createTestOrder()" class="btn-warning">🛒 Create Test Order</button>
+        <div id="testOrderResult" class="result"></div>
+    </div>
+
+    <!-- Manual Status Update -->
+    <div class="container">
+        <h2>5️⃣ Manual Status Update Test</h2>
+        <p>Manually test updating an order's status to verify the process works.</p>
+        
+        <div class="form-group">
+            <label>Order ID to Update:</label>
+            <input type="number" id="orderIdToUpdate" placeholder="Enter order ID">
+        </div>
+        
+        <div class="form-group">
+            <label>New Status:</label>
+            <select id="newStatus">
+                <option value="processing">Processing</option>
+                <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
+                <option value="new">New</option>
+            </select>
+        </div>
+        
+        <button onclick="updateOrderStatus()" class="btn-danger">⚙️ Update Order Status</button>
+        <div id="statusUpdateResult" class="result"></div>
+    </div>
+
+    <!-- Check Laravel Logs -->
+    <div class="container">
+        <h2>6️⃣ Laravel Logs Check</h2>
+        <p>Instructions for checking Laravel logs for WhatsApp webhook activity.</p>
+        
+        <div class="info">
+            <strong>Manual Log Check:</strong><br>
+            1. Open terminal in: <code>c:\xampp\htdocs\shop\shop-backend</code><br>
+            2. Run: <code>tail -f storage/logs/laravel.log | findstr "WhatsApp"</code><br>
+            3. Look for webhook messages and errors<br><br>
+            
+            <strong>Look for these log entries:</strong><br>
+            • "WhatsApp webhook received"<br>
+            • "Order confirmed via WhatsApp"<br>
+            • "Error handling order confirmation"<br>
+            • "WhatsApp webhook error"
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8001/api';
+        
+        async function testWebhookVerification() {
+            const resultDiv = document.getElementById('webhookVerifyResult');
+            resultDiv.textContent = '🔄 Testing webhook verification...';
+            
+            try {
+                // Test webhook verification with Facebook's expected parameters
+                const response = await fetch(`${API_BASE}/whatsapp/webhook?hub.mode=subscribe&hub.verify_token=your_verify_token_here&hub.challenge=test_challenge`);
+                
+                if (response.status === 200) {
+                    const result = await response.text();
+                    resultDiv.className = 'result success';
+                    resultDiv.textContent = `✅ Webhook Verification SUCCESS!\nResponse: ${result}`;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent = `❌ Webhook Verification FAILED!\nStatus: ${response.status}`;
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `❌ Error: ${error.message}`;
+            }
+        }
+        
+        async function simulateWhatsAppConfirm() {
+            const resultDiv = document.getElementById('confirmResult');
+            const phone = document.getElementById('customerPhone').value;
+            const messageText = document.getElementById('messageText').value;
+            
+            resultDiv.textContent = '🔄 Simulating WhatsApp message...';
+            
+            // Create WhatsApp webhook payload structure
+            const webhookPayload = {
+                "entry": [{
+                    "changes": [{
+                        "value": {
+                            "messages": [{
+                                "from": phone,
+                                "text": {
+                                    "body": messageText
+                                },
+                                "timestamp": Date.now()
+                            }]
+                        }
+                    }]
+                }]
+            };
+            
+            try {
+                const response = await fetch(`${API_BASE}/whatsapp/webhook`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(webhookPayload)
+                });
+                
+                if (response.ok) {
+                    resultDiv.className = 'result success';
+                    resultDiv.textContent = `✅ Webhook message processed successfully!\n\nNow check if any order status was updated from "new" to "processing".`;
+                } else {
+                    const errorData = await response.text();
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent = `❌ Webhook processing failed!\nStatus: ${response.status}\nResponse: ${errorData}`;
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `❌ Error: ${error.message}`;
+            }
+        }
+        
+        async function checkRecentOrders() {
+            const resultDiv = document.getElementById('ordersResult');
+            resultDiv.textContent = '🔄 Fetching recent orders...';
+            
+            try {
+                const response = await fetch(`${API_BASE}/admin/orders?limit=10`);
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    const orders = data.data.data || [];
+                    let result = `✅ Recent Orders (${orders.length} found):\n\n`;
+                    
+                    orders.forEach((order, index) => {
+                        result += `${index + 1}. Order #${order.id}\n`;
+                        result += `   Customer: ${order.client_name} ${order.client_lastname}\n`;
+                        result += `   Phone: ${order.phone}\n`;
+                        result += `   Status: ${order.status}\n`;
+                        result += `   Created: ${order.created_at}\n\n`;
+                    });
+                    
+                    resultDiv.className = 'result success';
+                    resultDiv.textContent = result;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent = `❌ Failed to fetch orders: ${data.message || 'Unknown error'}`;
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `❌ Error: ${error.message}`;
+            }
+        }
+        
+        async function createTestOrder() {
+            const resultDiv = document.getElementById('testOrderResult');
+            resultDiv.textContent = '🔄 Creating test order...';
+            
+            const orderData = {
+                client_name: document.getElementById('testName').value,
+                client_lastname: document.getElementById('testLastname').value,
+                email: document.getElementById('testEmail').value,
+                phone: document.getElementById('testOrderPhone').value,
+                products_id: parseInt(document.getElementById('testProductId').value),
+                method_payment: document.getElementById('testPayment').value === 'cod' ? 'Cash on Delivery' : 'Online Payment',
+                payment_method: document.getElementById('testPayment').value
+            };
+            
+            try {
+                const response = await fetch(`${API_BASE}/orders`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(orderData)
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    resultDiv.className = 'result success';
+                    resultDiv.textContent = `✅ Test Order Created Successfully!\n\nOrder ID: ${data.data.order_id}\nStatus: ${data.data.status}\nPhone: ${orderData.phone}\n\n🎯 Use Order ID ${data.data.order_id} in the status update test below.\n\n📱 WhatsApp should have been sent to ${orderData.phone}`;
+                    
+                    // Auto-fill the order ID for status update test
+                    document.getElementById('orderIdToUpdate').value = data.data.order_id;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent = `❌ Failed to create order: ${data.message || 'Unknown error'}\n\nDetails: ${JSON.stringify(data, null, 2)}`;
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `❌ Error: ${error.message}`;
+            }
+        }
+        
+        async function updateOrderStatus() {
+            const resultDiv = document.getElementById('statusUpdateResult');
+            const orderId = document.getElementById('orderIdToUpdate').value;
+            const newStatus = document.getElementById('newStatus').value;
+            
+            if (!orderId) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = '❌ Please enter an Order ID';
+                return;
+            }
+            
+            resultDiv.textContent = '🔄 Updating order status...';
+            
+            try {
+                const response = await fetch(`${API_BASE}/orders/${orderId}/status`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ status: newStatus })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    resultDiv.className = 'result success';
+                    resultDiv.textContent = `✅ Order Status Updated Successfully!\n\nOrder ID: ${orderId}\nNew Status: ${newStatus}\n\nNow check if this matches what the WhatsApp webhook should do.`;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent = `❌ Failed to update status: ${data.message || 'Unknown error'}\n\nResponse: ${JSON.stringify(data, null, 2)}`;
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `❌ Error: ${error.message}`;
+            }
+        }
+        
+        // Auto-check webhook verification on page load
+        window.onload = function() {
+            testWebhookVerification();
+        };
+    </script>
+</body>
+</html>

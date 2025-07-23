@@ -1,13 +1,17 @@
 "use client";
 import { useState, useEffect } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-// import { toast } from "sonner"; // Temporarily disabled
+import { Star, ShoppingCart, Heart, Search, Menu, X, ArrowRight, Truck, Shield, RefreshCw, Award } from "lucide-react";
+
+// Import Cookie Management System
+import { GuestDataManager } from "@/lib/cookieManager";
 
 // Simple toast fallback
 const toast = {
@@ -16,82 +20,52 @@ const toast = {
   info: (message) => console.log('ℹ️ Info:', message),
 };
 
-const heroSlides = [
+// API Configuration
+const API_BASE_URL = 'http://127.0.0.1:8001/api';
+
+// Clean hero sections for modern design
+const heroSections = [
   {
     id: 1,
-    image: "/products/clothing.jpg",
-    title: "Summer Collection 2025",
-    description: "Discover the latest trends for the season",
-    buttonText: "Shop Now"
+    title: "New Collection",
+    subtitle: "Summer 2025",
+    description: "Discover our latest arrivals and premium products",
+    image: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=1400&auto=format&fit=crop",
+    buttonText: "Shop Collection",
+    theme: "light"
   },
   {
     id: 2,
-    image: "https://images.unsplash.com/photo-1749810364373-5e2f18bb842a?q=80&w=387&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-    title: "Exclusive Deals",
-    description: "Up to 50% off on selected items",
-    buttonText: "View Offers"
-  },
-  {
-    id: 3,
-    image: "/products/electronics.jpg",
-    title: "New Arrivals",
-    description: "Be the first to shop our latest products",
-    buttonText: "Explore"
+    title: "Special Offer",
+    subtitle: "Up to 50% off",
+    description: "Limited time offer on selected items",
+    image: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?q=80&w=1400&auto=format&fit=crop",
+    buttonText: "Shop Sale",
+    theme: "dark"
   }
 ];
 
-const products = [
+// Clean category data
+const categories = [
   {
-    id: 1,
-    name: "Classic T-Shirt",
-    price: 29.99,
-    image: "/products/clothing.jpg",
-    description: "A comfortable cotton t-shirt for everyday wear.",
-    featured: true,
-    category: "clothing"
+    name: "Women",
+    image: "https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?q=80&w=800&auto=format&fit=crop",
+    slug: "women"
   },
   {
-    id: 2,
-    name: "Designer Jeans",
-    price: 89.99,
-    image: "/products/clothing.jpg",
-    description: "Premium quality jeans with perfect fit.",
-    featured: true,
-    category: "clothing"
-  },  {
-    id: 3,
-    name: "Casual Sneakers",
-    price: 59.99,
-    image: "https://images.unsplash.com/photo-1746469535771-71a672e8719f?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-    description: "Lightweight and stylish sneakers for any occasion.",
-    featured: false,
-    category: "shoes"
+    name: "Men", 
+    image: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?q=80&w=800&auto=format&fit=crop",
+    slug: "men"
   },
   {
-    id: 4,
-    name: "Leather Wallet",
-    price: 39.99,
-    image: "/products/accessories.jpg",
-    description: "Genuine leather wallet with multiple compartments.",
-    featured: false,
-    category: "accessories"
-  },  {
-    id: 5,
-    name: "Smartwatch Pro",
-    price: 199.99,
-    image: "/products/electronics.jpg",
-    description: "Next-generation smartwatch with health monitoring.",
-    featured: true,
-    category: "electronics"
+    name: "Accessories",
+    image: "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?q=80&w=800&auto=format&fit=crop",
+    slug: "accessories"
   },
   {
-    id: 6,
-    name: "Wireless Headphones",
-    price: 79.99,
-    image: "/products/electronics.jpg",
-    description: "Premium sound quality with noise cancellation.",
-    featured: true,
-    category: "electronics"
+    name: "Electronics",
+    image: "https://images.unsplash.com/photo-1468495244123-6c6c332eeece?q=80&w=800&auto=format&fit=crop",
+    slug: "electronics"
   }
 ];
 
@@ -103,9 +77,102 @@ const paymentMethods = [
 ];
 
 export default function Home() {
+  const router = useRouter();    
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
+  const [scrolled, setScrolled] = useState(false);     
   const [activeCategory, setActiveCategory] = useState("all");
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [cartCount, setCartCount] = useState(0);
+  const [guestManager, setGuestManager] = useState(null);
+  
+  // Initialize Guest Data Manager
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const manager = new GuestDataManager();
+      setGuestManager(manager);
+      
+      // Load cart count from cookies and localStorage
+      const cookieCart = manager.getCart();
+      const localCart = JSON.parse(localStorage.getItem('shopping_cart') || '[]');
+      
+      // Sync cookie cart with localStorage if different
+      if (cookieCart.length !== localCart.length) {
+        const totalItems = Math.max(
+          cookieCart.reduce((sum, item) => sum + (item.quantity || 1), 0),
+          localCart.reduce((sum, item) => sum + (item.quantity || 1), 0)
+        );
+        setCartCount(totalItems);
+      }
+      
+      console.log('🍪 Guest Data Manager initialized');
+      console.log('📊 Guest Analytics:', manager.getGuestAnalytics());
+    }
+  }, []);// Fetch products from API - Only real products from database
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setLoading(true);
+        
+        const response = await fetch(`${API_BASE_URL}/products`);
+        
+        if (response.ok) {
+          const data = await response.json();
+          
+          // Filter only active products
+          const activeProducts = data.filter(product => product.status === 'active');
+          
+          setProducts(activeProducts);
+          console.log(`✅ Loaded ${activeProducts.length} real products from database`);
+          toast.success(`Loaded ${activeProducts.length} products from database`);
+        } else {
+          console.error('❌ API response not ok:', response.status);
+          setProducts([]); // Show empty instead of fake products
+          toast.error('Failed to load products from database');
+        }
+      } catch (error) {
+        console.error('💥 Error fetching products:', error);
+        setProducts([]); // Show empty instead of fake products
+        toast.error('Cannot connect to database');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, []);
+
+  // Update cart count from localStorage
+  useEffect(() => {
+    const updateCartCount = () => {
+      try {
+        const savedCart = localStorage.getItem('shopping_cart');
+        if (savedCart) {
+          const cartData = JSON.parse(savedCart);
+          if (Array.isArray(cartData)) {
+            const totalItems = cartData.reduce((sum, item) => sum + (item.quantity || 1), 0);
+            setCartCount(totalItems);
+          }
+        }
+      } catch (error) {
+        console.error('Error reading cart:', error);
+        setCartCount(0);
+      }
+    };
+
+    updateCartCount();
+    
+    // Listen for storage changes (cart updates from other tabs)
+    window.addEventListener('storage', updateCartCount);
+    
+    // Custom event for cart updates in same tab
+    window.addEventListener('cartUpdated', updateCartCount);
+    
+    return () => {
+      window.removeEventListener('storage', updateCartCount);
+      window.removeEventListener('cartUpdated', updateCartCount);
+    };
+  }, []);
   
   // Handle scroll effect for the header
   useEffect(() => {
@@ -116,423 +183,434 @@ export default function Home() {
         setScrolled(false);
       }
     };
-    
+                                                             
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-
+  // Add to cart functionality with Cookie Support
   const handleAddToCart = (product) => {
-    toast.success(`${product.name} added to cart!`);
+    try {
+      // Get existing cart from localStorage
+      const savedCart = localStorage.getItem('shopping_cart');
+      let cart = [];
+      
+      if (savedCart) {
+        cart = JSON.parse(savedCart);
+        if (!Array.isArray(cart)) {
+          cart = [];
+        }
+      }
+
+      // Check if product already exists in cart
+      const existingIndex = cart.findIndex(item => item.id === product.id);
+      
+      if (existingIndex > -1) {
+        // Increase quantity
+        cart[existingIndex].quantity = (cart[existingIndex].quantity || 1) + 1;
+        toast.success(`Increased ${product.name} quantity in cart!`);
+      } else {
+        // Add new item
+        cart.push({
+          id: product.id,
+          quantity: 1
+        });
+        toast.success(`${product.name} added to cart!`);
+      }
+
+      // Save to both localStorage and cookies
+      localStorage.setItem('shopping_cart', JSON.stringify(cart));
+      
+      // Save to cookies if guest manager is available
+      if (guestManager) {
+        guestManager.saveCart(cart);
+      }
+      
+      // Update cart count
+      const totalItems = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
+      setCartCount(totalItems);
+      
+      // Dispatch custom event to notify other components
+      window.dispatchEvent(new Event('cartUpdated'));
+      
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      toast.error('Failed to add item to cart');
+    }
+  };// Get product image with fallback - Updated for real database structure  
+  const getProductImage = (product) => {
+    // Handle the real database image structure
+    if (product.images && product.images.length > 0) {
+      return `http://127.0.0.1:8001/${product.images[0]}`;
+    }
+    if (product.image) {
+      return `http://127.0.0.1:8001/${product.image}`;
+    }
+    return "/placeholder.jpg"; // Use the existing placeholder in public folder
   };
 
-  return (
-    <div className="min-h-screen bg-background">
-      {/* Header with navigation */}
-      <header className={`border-b border-border sticky top-0 z-50 bg-background/95 backdrop-blur transition-all duration-300 ${scrolled ? 'shadow-sm py-2' : 'py-4'}`}>
-        <div className="container mx-auto px-4 flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-white font-bold">S</div>
-            <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-600">ShopApp</h1>
+  // Get product price
+  const getProductPrice = (product) => {
+    return parseFloat(product.current_price || product.price || 0);
+  };
+  // Filter products by category - Updated for real database structure
+  const getFilteredProducts = (category) => {
+    if (category === "all") {
+      return products; // Show all products from database
+    }
+    return products.filter(p => p.category?.name?.toLowerCase() === category);
+  };  // Get product card component - Enhanced with Cookie Features
+  const ProductCard = ({ product }) => {
+    const handleProductClick = () => {
+      // Save to recently viewed
+      if (guestManager) {
+        guestManager.saveRecentlyViewed(product.id);
+      }
+      router.push(`/product/${product.id}`);
+    };
+
+    const handleAddToCartClick = (e) => {
+      e.stopPropagation(); // Prevent navigation when clicking add to cart
+      handleAddToCart(product);
+    };
+
+    const handleWishlistClick = (e) => {
+      e.stopPropagation(); // Prevent navigation
+      if (guestManager) {
+        const wishlist = guestManager.getWishlist();
+        if (wishlist.includes(product.id)) {
+          guestManager.removeFromWishlist(product.id);
+          toast.info(`${product.name} removed from wishlist`);
+        } else {
+          guestManager.addToWishlist(product.id);
+          toast.success(`${product.name} added to wishlist`);
+        }
+      }
+    };
+
+    const isInWishlist = guestManager ? guestManager.getWishlist().includes(product.id) : false;
+
+    return (
+      <div className="group cursor-pointer" onClick={handleProductClick}>
+        <div className="aspect-square overflow-hidden bg-gray-50 mb-4 relative">        
+          <img 
+            src={getProductImage(product)} 
+            alt={product.name}
+            className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
+            onError={(e) => {
+              e.target.src = "/placeholder.jpg";
+            }}
+          />
+          {/* Show featured badge for products with current_price different from price */}
+          {product.price && product.current_price && parseFloat(product.price) > parseFloat(product.current_price) && (
+            <Badge className="absolute top-3 left-3 bg-red-500 text-white text-xs">
+              Sale
+            </Badge>
+          )}
+          {/* Wishlist Button */}
+          <Button
+            size="sm"
+            variant="ghost"
+            className={`absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
+              isInWishlist ? 'text-red-500' : 'text-gray-600'
+            } hover:text-red-500`}
+            onClick={handleWishlistClick}
+          >
+            <Heart className={`h-4 w-4 ${isInWishlist ? 'fill-current' : ''}`} />
+          </Button>
+          {/* Add to Cart Button */}
+          <Button
+            size="sm"
+            className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-white text-gray-900 hover:bg-gray-100"
+            onClick={handleAddToCartClick}
+          >
+            <ShoppingCart className="h-4 w-4" />
+          </Button>
+        </div>
+        <div className="space-y-2">
+          <h3 className="font-medium text-gray-900 line-clamp-1">{product.name}</h3>
+          <p className="text-sm text-gray-600 line-clamp-2">{product.description}</p>
+          <div className="flex items-center justify-between">
+            <span className="font-semibold text-gray-900">${getProductPrice(product).toFixed(2)}</span>
+            {product.price && product.current_price && parseFloat(product.price) > parseFloat(product.current_price) && (
+              <span className="text-sm text-gray-500 line-through">${parseFloat(product.price).toFixed(2)}</span>
+            )}
           </div>
-          <nav className="hidden md:flex items-center gap-6">
-            <a href="/" className="text-sm font-medium hover:underline underline-offset-4 hover:text-primary transition-colors">Home</a>
-            <a href="#products-section" className="text-sm font-medium hover:underline underline-offset-4 hover:text-primary transition-colors">Products</a>
-            <a href="#" className="text-sm font-medium hover:underline underline-offset-4 hover:text-primary transition-colors">Categories</a>
-            <a href="#" className="text-sm font-medium hover:underline underline-offset-4 hover:text-primary transition-colors">Sale</a>
-            <a href="/admin" className="text-sm font-medium hover:underline underline-offset-4 hover:text-primary transition-colors">Admin</a>
+          {/* Show product category and size if available */}
+          <div className="flex items-center gap-2 text-xs text-gray-500">
+            {product.category && <span>{product.category.name}</span>}
+            {product.size && <span>• {product.size}</span>}
+          </div>
+        </div>
+      </div>
+    );
+  };
+  return (
+    <div className="min-h-screen bg-white">
+      {/* Clean Modern Header */}
+      <header className={`border-b border-gray-100 sticky top-0 z-50 bg-white/95 backdrop-blur-sm transition-all duration-300 ${scrolled ? 'shadow-sm' : ''}`}>
+        <div className="container mx-auto px-4 h-16 flex justify-between items-center">
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 rounded-lg bg-gray-900 flex items-center justify-center text-white font-bold text-sm">
+              B
+            </div>
+            <h1 className="text-xl font-semibold text-gray-900">
+              BAZAR
+            </h1>
+          </div>
+          
+          <nav className="hidden md:flex items-center gap-8">
+            <a href="/" className="text-sm font-medium text-gray-900 hover:text-gray-600 transition-colors">
+              Home
+            </a>
+            <a href="#products" className="text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors">
+              Products
+            </a>
+            <a href="#categories" className="text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors">
+              Categories
+            </a>
+            <a href="#" className="text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors">
+              About
+            </a>
+            <a href="#" className="text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors">
+              Contact
+            </a>
           </nav>
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" className="hidden md:flex hover:bg-primary/10 hover:text-primary transition-colors">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
-                <circle cx="11" cy="11" r="8"></circle>
-                <path d="m21 21-4.3-4.3"></path>
-              </svg>
+          
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" className="hidden md:flex">
+              <Search className="h-5 w-5" />
             </Button>
-            <Button variant="ghost" size="icon" className="hover:bg-primary/10 hover:text-primary transition-colors">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                <circle cx="12" cy="7" r="4"></circle>
-              </svg>
+            <Button variant="ghost" size="icon">
+              <Heart className="h-5 w-5" />
             </Button>
             <a href="/checkout">
-              <Button 
-                variant="outline" 
-                size="icon" 
-                className="relative hover:border-primary hover:text-primary transition-colors hover:scale-105"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
-                  <circle cx="8" cy="21" r="1"></circle>
-                  <circle cx="19" cy="21" r="1"></circle>
-                  <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"></path>
-                </svg>
-                <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 animate-pulse-slow">3</Badge>
+              <Button variant="ghost" size="icon" className="relative">
+                <ShoppingCart className="h-5 w-5" />
+                {cartCount > 0 && (
+                  <Badge className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 bg-gray-900 text-white text-xs">
+                    {cartCount}
+                  </Badge>
+                )}
               </Button>
             </a>
             <Button 
               variant="ghost" 
-              size="icon" 
-              className="md:hidden hover:bg-primary/10" 
+              size="icon"
+              className="md:hidden" 
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             >
-              {mobileMenuOpen ? (
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6">
-                  <path d="M18 6 6 18"></path>
-                  <path d="m6 6 12 12"></path>
-                </svg>
-              ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6">
-                  <path d="M4 6h16"></path>
-                  <path d="M4 12h16"></path>
-                  <path d="M4 18h16"></path>
-                </svg>
-              )}
+              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </Button>
           </div>
         </div>
         
         {/* Mobile Menu */}
-        <div 
-          className={`md:hidden absolute top-full left-0 right-0 bg-background border-b border-border shadow-lg transform transition-all duration-300 ease-in-out ${
-            mobileMenuOpen ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'
-          }`}
-        >
-          <nav className="flex flex-col p-4 gap-2">
-            <a 
-              href="/" 
-              className="text-sm font-medium p-2 hover:bg-primary/10 rounded-md hover:text-primary transition-colors"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Home
-            </a>
-            <a 
-              href="#products-section" 
-              className="text-sm font-medium p-2 hover:bg-primary/10 rounded-md hover:text-primary transition-colors"
-              onClick={() => {
-                document.getElementById('products-section').scrollIntoView({ behavior: 'smooth' });
-                setMobileMenuOpen(false);
-              }}
-            >
-              Products
-            </a>
-            <a 
-              href="#" 
-              className="text-sm font-medium p-2 hover:bg-primary/10 rounded-md hover:text-primary transition-colors"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Categories
-            </a>
-            <a 
-              href="#" 
-              className="text-sm font-medium p-2 hover:bg-primary/10 rounded-md hover:text-primary transition-colors"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Sale
-            </a>
-            <a 
-              href="/admin" 
-              className="text-sm font-medium p-2 hover:bg-primary/10 rounded-md hover:text-primary transition-colors"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Admin
-            </a>
-            <div className="mt-2 pt-2 border-t border-border">
-              <Button 
-                variant="default" 
-                className="w-full bg-gradient-to-r from-primary to-purple-600 hover:opacity-90 transition-opacity"
-                onClick={() => {
-                  window.location.href = "/checkout";
-                }}
-              >
-                View Cart (3)
-              </Button>
-            </div>
-          </nav>
-        </div>
+        {mobileMenuOpen && (
+          <div className="md:hidden border-t border-gray-100 bg-white">
+            <nav className="flex flex-col p-4 gap-2">
+              <a href="/" className="text-sm font-medium p-2 hover:bg-gray-50 rounded-md">Home</a>
+              <a href="#products" className="text-sm font-medium p-2 hover:bg-gray-50 rounded-md">Products</a>
+              <a href="#categories" className="text-sm font-medium p-2 hover:bg-gray-50 rounded-md">Categories</a>
+              <a href="#" className="text-sm font-medium p-2 hover:bg-gray-50 rounded-md">About</a>
+              <a href="#" className="text-sm font-medium p-2 hover:bg-gray-50 rounded-md">Contact</a>
+            </nav>
+          </div>
+        )}
       </header>
       
-      <main>        {/* Hero Carousel Section */}
-        <section className="relative">
-          <Carousel className="w-full" autoPlay={true} loop={true}>
-            <CarouselContent>
-              {heroSlides.map((slide) => (
-                <CarouselItem key={slide.id}>
-                  <div className="relative h-[50vh] md:h-[70vh] overflow-hidden">
-                    <div className="absolute inset-0 bg-gray-900/40 z-10"></div>                    <div className="w-full h-full bg-muted">
-                      <img src={slide.image} alt={slide.title} className="w-full h-full object-cover" />
-                    </div>
-                    <div className="absolute inset-0 z-20 flex flex-col items-center justify-center text-center text-white p-6">                      <h1 className="text-4xl md:text-6xl font-bold mb-4">{slide.title}</h1>
-                      <p className="text-lg md:text-xl mb-8 max-w-2xl">{slide.description}</p>
-                      <Button size="lg" className="bg-primary hover:bg-primary/90" onClick={() => document.getElementById('products-section').scrollIntoView({ behavior: 'smooth' })}>{slide.buttonText}</Button>
+      {/* Hero Section */}
+      <section className="relative">
+        <Carousel className="w-full">
+          <CarouselContent>
+            {heroSections.map((section) => (
+              <CarouselItem key={section.id}>
+                <div className="relative h-[70vh] overflow-hidden">
+                  <div className="absolute inset-0">
+                    <img 
+                      src={section.image} 
+                      alt={section.title} 
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="absolute inset-0 bg-black/20"></div>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="text-center text-white max-w-2xl px-4">
+                      <p className="text-sm font-medium mb-2 uppercase tracking-wider">{section.subtitle}</p>
+                      <h1 className="text-4xl md:text-6xl font-light mb-4">{section.title}</h1>
+                      <p className="text-lg mb-8 text-white/90">{section.description}</p>
+                      <Button 
+                        size="lg" 
+                        className="bg-white text-black hover:bg-gray-100 px-8 py-3"
+                        onClick={() => document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' })}
+                      >
+                        {section.buttonText}
+                      </Button>
                     </div>
                   </div>
-                </CarouselItem>
-              ))}
-            </CarouselContent>
-            <CarouselPrevious className="left-4" />
-            <CarouselNext className="right-4" />
-          </Carousel>
-        </section>
-        
-        {/* Featured Categories */}
-        <section className="py-12 bg-muted/30">
-          <div className="container mx-auto px-4">
-            <h2 className="text-3xl font-bold mb-8 text-center">Shop by Category</h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">              {['Clothing', 'Shoes', 'Accessories', 'Electronics'].map((category, index) => (
-                <Card key={index} className="overflow-hidden group cursor-pointer">
-                  <div className="aspect-square relative bg-muted transition-transform group-hover:scale-105 duration-300">
-                    <div className="w-full h-full flex items-center justify-center bg-muted">
-                      <div className="relative w-full h-full">
-                        <img 
-                          src={`/products/category-${category.toLowerCase()}.jpg`} 
-                          alt={`${category} category`}
-                          className="object-cover w-full h-full"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  <CardContent className="p-4">
-                    <h3 className="font-semibold text-center">{category}</h3>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        </section>
-          {/* Featured Products Tabs */}
-        <section id="products-section" className="py-16 container mx-auto px-4">
-          <div className="flex flex-col items-center mb-8">
-            <h2 className="text-3xl font-bold">Featured Products</h2>
-            <Separator className="my-4 w-24" />
-            <p className="text-muted-foreground text-center max-w-2xl">
-              Discover our handpicked selection of premium quality products
-            </p>
+                </div>
+              </CarouselItem>
+            ))}
+          </CarouselContent>
+          <CarouselPrevious className="left-6" />
+          <CarouselNext className="right-6" />
+        </Carousel>
+      </section>
+      
+      {/* Categories Section */}
+      <section id="categories" className="py-16 bg-gray-50">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-light text-gray-900 mb-4">Shop by Category</h2>
+            <p className="text-gray-600">Discover our curated collections</p>
           </div>
           
-          <Tabs defaultValue="all" className="w-full">
-            <div className="flex justify-center mb-8">
-              <TabsList>
-                <TabsTrigger value="all">All</TabsTrigger>
-                <TabsTrigger value="clothing">Clothing</TabsTrigger>
-                <TabsTrigger value="shoes">Shoes</TabsTrigger>
-                <TabsTrigger value="electronics">Electronics</TabsTrigger>
-              </TabsList>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {categories.map((category, index) => (
+              <div key={index} className="group cursor-pointer">
+                <div className="aspect-square overflow-hidden rounded-lg mb-4">
+                  <img 
+                    src={category.image} 
+                    alt={category.name}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                </div>
+                <h3 className="text-center font-medium text-gray-900">{category.name}</h3>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+      
+      {/* Features Section */}
+      <section className="py-16 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="text-center">
+              <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Truck className="h-6 w-6 text-gray-600" />
+              </div>
+              <h3 className="font-semibold text-gray-900 mb-2">Free Shipping</h3>
+              <p className="text-gray-600 text-sm">Free delivery on orders over $100</p>
             </div>
             
-            <TabsContent value="all" className="mt-0">
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                {products.filter(p => p.featured).map(product => (
-                  <Card key={product.id} className="overflow-hidden group cursor-pointer transition-all duration-300 hover:shadow-lg">                    <div className="aspect-square relative bg-muted">
-                      <div className="w-full h-full">
-                        <img 
-                          src={product.image} 
-                          alt={product.name}
-                          className="object-cover w-full h-full group-hover:opacity-90 transition-opacity"
-                        />
-                      </div>
-                      <Badge className="absolute top-2 right-2 bg-primary hover:bg-primary/90">Featured</Badge>
-                    </div>
-                    <CardHeader className="p-4 pb-0">
-                      <div className="flex justify-between items-start">
-                        <CardTitle className="text-lg">{product.name}</CardTitle>
-                        <div className="text-lg font-bold">${product.price.toFixed(2)}</div>
-                      </div>
-                      <CardDescription className="line-clamp-2 mt-2">{product.description}</CardDescription>
-                    </CardHeader>
-                    <CardFooter className="p-4 pt-2">
-                      <Button className="w-full bg-primary/90 hover:bg-primary group">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 mr-2 group-hover:animate-bounce">
-                          <circle cx="8" cy="21" r="1"></circle>
-                          <circle cx="19" cy="21" r="1"></circle>
-                          <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"></path>
-                        </svg>
-                        Add to Cart
-                      </Button>
-                    </CardFooter>
-                  </Card>
-                ))}
+            <div className="text-center">
+              <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <RefreshCw className="h-6 w-6 text-gray-600" />
               </div>
-            </TabsContent>
+              <h3 className="font-semibold text-gray-900 mb-2">Easy Returns</h3>
+              <p className="text-gray-600 text-sm">30-day return policy</p>
+            </div>
             
-            <TabsContent value="clothing" className="mt-0">
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                {products.filter(p => p.category === 'clothing').map(product => (
-                  <Card key={product.id} className="overflow-hidden group cursor-pointer transition-all duration-300 hover:shadow-lg">
-                    <div className="aspect-square relative bg-muted">
-                      <div className="w-full h-full flex items-center justify-center bg-muted text-muted-foreground group-hover:opacity-90 transition-opacity">
-                        Product Image
-                      </div>
-                      {product.featured && (
-                        <Badge className="absolute top-2 right-2 bg-primary hover:bg-primary/90">Featured</Badge>
-                      )}
-                    </div>
-                    <CardHeader className="p-4 pb-0">
-                      <div className="flex justify-between items-start">
-                        <CardTitle className="text-lg">{product.name}</CardTitle>
-                        <div className="text-lg font-bold">${product.price.toFixed(2)}</div>
-                      </div>
-                      <CardDescription className="line-clamp-2 mt-2">{product.description}</CardDescription>
-                    </CardHeader>
-                    <CardFooter className="p-4 pt-2">
-                      <Button className="w-full bg-primary/90 hover:bg-primary group">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 mr-2 group-hover:animate-bounce">
-                          <circle cx="8" cy="21" r="1"></circle>
-                          <circle cx="19" cy="21" r="1"></circle>
-                          <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"></path>
-                        </svg>
-                        Add to Cart
-                      </Button>
-                    </CardFooter>
-                  </Card>
-                ))}
+            <div className="text-center">
+              <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Shield className="h-6 w-6 text-gray-600" />
               </div>
-            </TabsContent>
-            
-            {/* Similar structure for shoes and electronics tabs */}
-            <TabsContent value="shoes" className="mt-0">
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                {products.filter(p => p.category === 'shoes').map(product => (
-                  <Card key={product.id} className="overflow-hidden group cursor-pointer transition-all duration-300 hover:shadow-lg">
-                    {/* Product card content */}
-                    <div className="aspect-square relative bg-muted">
-                      <div className="w-full h-full flex items-center justify-center bg-muted text-muted-foreground group-hover:opacity-90 transition-opacity">
-                        Product Image
-                      </div>
-                    </div>
-                    <CardHeader className="p-4 pb-0">
-                      <div className="flex justify-between items-start">
-                        <CardTitle className="text-lg">{product.name}</CardTitle>
-                        <div className="text-lg font-bold">${product.price.toFixed(2)}</div>
-                      </div>
-                      <CardDescription className="line-clamp-2 mt-2">{product.description}</CardDescription>
-                    </CardHeader>
-                    <CardFooter className="p-4 pt-2">
-                      <Button className="w-full bg-primary/90 hover:bg-primary">Add to Cart</Button>
-                    </CardFooter>
-                  </Card>
-                ))}
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="electronics" className="mt-0">
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                {products.filter(p => p.category === 'electronics').map(product => (
-                  <Card key={product.id} className="overflow-hidden group cursor-pointer transition-all duration-300 hover:shadow-lg">
-                    {/* Product card content */}
-                    <div className="aspect-square relative bg-muted">
-                      <div className="w-full h-full flex items-center justify-center bg-muted text-muted-foreground group-hover:opacity-90 transition-opacity">
-                        Product Image
-                      </div>
-                    </div>
-                    <CardHeader className="p-4 pb-0">
-                      <div className="flex justify-between items-start">
-                        <CardTitle className="text-lg">{product.name}</CardTitle>
-                        <div className="text-lg font-bold">${product.price.toFixed(2)}</div>
-                      </div>
-                      <CardDescription className="line-clamp-2 mt-2">{product.description}</CardDescription>
-                    </CardHeader>
-                    <CardFooter className="p-4 pt-2">
-                      <Button className="w-full bg-primary/90 hover:bg-primary">Add to Cart</Button>
-                    </CardFooter>
-                  </Card>
-                ))}
-              </div>
-            </TabsContent>
-          </Tabs>
-        </section>
-        
-        {/* Special Offers Banner */}
-        <section className="py-12 bg-primary/10">
-          <div className="container mx-auto px-4">
-            <div className="rounded-xl bg-gradient-to-r from-primary/80 to-primary p-6 md:p-12 text-white overflow-hidden relative">              <div className="max-w-lg">
-                <h2 className="text-3xl md:text-4xl font-bold mb-4">Summer Sale Is Live!</h2>
-                <p className="text-lg mb-6">Enjoy up to 50% off on selected summer products. Limited time offer.</p>
-                <Button variant="secondary" size="lg" className="text-primary" onClick={() => document.getElementById('products-section').scrollIntoView({ behavior: 'smooth' })}>Shop the Sale</Button>
-              </div>
-              <div className="hidden md:block absolute -bottom-10 right-10 w-64 h-64 rounded-full bg-white/20"></div>
-              <div className="hidden md:block absolute -top-10 right-40 w-32 h-32 rounded-full bg-white/10"></div>
+              <h3 className="font-semibold text-gray-900 mb-2">Secure Payment</h3>
+              <p className="text-gray-600 text-sm">Your payment information is safe</p>
             </div>
           </div>
-        </section>
-        
-        {/* Payment Methods Section */}
-        <section className="py-12 bg-muted/20">
-          <div className="container mx-auto px-4">
-            <div className="text-center mb-8">
-              <h2 className="text-2xl font-bold">Secure Payment Methods</h2>
-              <p className="text-muted-foreground mt-2">We offer multiple payment options for your convenience</p>
+        </div>
+      </section>
+      
+      {/* Featured Products */}
+      <section id="products" className="py-16 bg-gray-50">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-light text-gray-900 mb-4">Featured Products</h2>
+            <p className="text-gray-600">Handpicked favorites for you</p>
+          </div>
+            {loading ? (
+            <div className="text-center py-12">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+              <p className="mt-4 text-gray-600">Loading products from database...</p>
             </div>
-            
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-3xl mx-auto">
-              {paymentMethods.map(method => (
-                <Card key={method.id} className="bg-background hover:shadow-md transition-shadow">
-                  <CardContent className="flex flex-col items-center justify-center p-4">                    <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4 overflow-hidden">
-                      <img src={method.icon} alt={`${method.name} icon`} className="w-full h-full object-cover" />
-                    </div>
-                    <p className="font-medium text-sm">{method.name}</p>
-                  </CardContent>
-                </Card>
+          ) : products.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-gray-600 mb-4">No products found in database.</p>
+              <p className="text-sm text-gray-500">Please add products through the admin panel.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {products.map(product => (
+                <ProductCard key={product.id} product={product} />
               ))}
             </div>
-            
-            <div className="mt-8 text-center">
-              <p className="text-sm text-muted-foreground">All transactions are secure and encrypted</p>
-            </div>
+          )}
+          
+          <div className="text-center mt-12">
+            <Button variant="outline" size="lg" className="px-8">
+              View All Products
+            </Button>
           </div>
-        </section>
-        
-        {/* Newsletter Subscription */}
-        <section className="py-16 container mx-auto px-4">
-          <div className="max-w-3xl mx-auto text-center">
-            <h2 className="text-3xl font-bold mb-4">Stay Updated</h2>
-            <p className="text-muted-foreground mb-8">Subscribe to our newsletter to receive updates and exclusive offers</p>
-            <div className="flex flex-col sm:flex-row gap-2 items-center justify-center">
-              <input type="email" placeholder="Enter your email" className="flex h-10 w-full sm:w-80 rounded-md border border-input bg-background px-3 py-2 text-sm" />
-              <Button>Subscribe</Button>
-            </div>
+        </div>
+      </section>
+      
+      {/* Newsletter Section */}
+      <section className="py-16 bg-gray-900 text-white">
+        <div className="container mx-auto px-4 text-center">
+          <h2 className="text-3xl font-light mb-4">Stay in the Loop</h2>
+          <p className="text-gray-300 mb-8 max-w-md mx-auto">
+            Subscribe to receive updates, access to exclusive deals, and more.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
+            <input 
+              type="email" 
+              placeholder="Enter your email" 
+              className="flex-1 px-4 py-3 bg-white text-gray-900 rounded-md"
+            />
+            <Button className="bg-white text-gray-900 hover:bg-gray-100 px-6">
+              Subscribe
+            </Button>
           </div>
-        </section>
-      </main>
+        </div>
+      </section>
       
       {/* Footer */}
-      <footer className="border-t border-border bg-muted/20">
+      <footer className="bg-white border-t border-gray-100">
         <div className="container mx-auto px-4 py-12">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
-              <h3 className="font-bold text-lg mb-4">ShopApp</h3>
-              <p className="text-muted-foreground text-sm mb-4">Your one-stop shop for fashion, electronics, and more.</p>
-              <div className="flex items-center gap-4">
-                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
-                    <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path>
-                  </svg>
-                </Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
-                    <rect width="20" height="20" x="2" y="2" rx="5"></rect>
-                    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
-                    <path d="M17.5 6.5h.01"></path>
-                  </svg>
-                </Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
-                    <path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"></path>
-                  </svg>
-                </Button>
-              </div>            </div>
+              <div className="flex items-center gap-2 mb-4">
+                <div className="h-6 w-6 rounded bg-gray-900 flex items-center justify-center text-white font-bold text-xs">
+                  B
+                </div>
+                <h3 className="font-semibold text-gray-900">BAZAR</h3>
+              </div>
+              <p className="text-gray-600 text-sm mb-4">
+                Your premium shopping destination for quality products at great prices.
+              </p>
+            </div>
+            
             <div>
-              <h3 className="font-bold mb-4">Shop</h3>
+              <h4 className="font-semibold text-gray-900 mb-4">Shop</h4>
               <ul className="space-y-2">
-                <li><a href="#" className="text-sm hover:underline text-muted-foreground">All Products</a></li>
+                <li><a href="#" className="text-gray-600 hover:text-gray-900 text-sm">New Arrivals</a></li>
+                <li><a href="#" className="text-gray-600 hover:text-gray-900 text-sm">Best Sellers</a></li>
+                <li><a href="#" className="text-gray-600 hover:text-gray-900 text-sm">Sale</a></li>
+              </ul>
+            </div>
+            
+            <div>
+              <h4 className="font-semibold text-gray-900 mb-4">Support</h4>
+              <ul className="space-y-2">
+                <li><a href="#" className="text-gray-600 hover:text-gray-900 text-sm">Contact Us</a></li>
+                <li><a href="#" className="text-gray-600 hover:text-gray-900 text-sm">Size Guide</a></li>
+                <li><a href="#" className="text-gray-600 hover:text-gray-900 text-sm">Returns</a></li>
+              </ul>
+            </div>
+            
+            <div>
+              <h4 className="font-semibold text-gray-900 mb-4">Company</h4>
+              <ul className="space-y-2">
+                <li><a href="#" className="text-gray-600 hover:text-gray-900 text-sm">About</a></li>
+                <li><a href="#" className="text-gray-600 hover:text-gray-900 text-sm">Privacy</a></li>
+                <li><a href="#" className="text-gray-600 hover:text-gray-900 text-sm">Terms</a></li>
               </ul>
             </div>
           </div>
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4 mt-8">
-            <p className="text-sm text-muted-foreground">© 2025 ShopApp. All rights reserved.</p>
-            <div className="flex items-center gap-4">
-              <a href="#" className="text-xs text-muted-foreground hover:underline">Privacy Policy</a>
-              <a href="#" className="text-xs text-muted-foreground hover:underline">Terms of Service</a>
-              <a href="#" className="text-xs text-muted-foreground hover:underline">Cookie Policy</a>
-            </div>
+          
+          <div className="border-t border-gray-100 mt-8 pt-8 text-center">
+            <p className="text-gray-600 text-sm">© 2025 BAZAR. All rights reserved.</p>
           </div>
         </div>
       </footer>

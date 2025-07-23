@@ -8,6 +8,9 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import ClientOnly from "@/components/ClientOnly";
 
+// API base URL - consistent with the rest of the application
+const API_BASE_URL = 'http://127.0.0.1:8001/api';
+
 export default function AdminLogin() {
   const [credentials, setCredentials] = useState({
     email: "",
@@ -35,7 +38,7 @@ export default function AdminLogin() {
     e.preventDefault();
     setIsLoading(true);
       try {
-      const response = await fetch('http://127.0.0.1:8001/api/admin/login', {
+      const response = await fetch(`${API_BASE_URL}/admin/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -56,9 +59,9 @@ export default function AdminLogin() {
         router.push("/admin/dashboard");
       } else {
         toast.error(data.message || "Invalid credentials");
-      }
-    } catch (error) {
-      toast.error("Connection error. Please check if backend is running.");
+      }    } catch (error) {
+      console.error("Login error:", error);
+      toast.error(`Connection error: ${error.message || "Cannot connect to backend server at " + API_BASE_URL}. Please check if backend is running.`);
     }
     
     setIsLoading(false);

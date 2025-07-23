@@ -4,6 +4,7 @@ namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use App\Models\Order;
 
 class WhatsAppService
 {
@@ -17,13 +18,12 @@ class WhatsAppService
     }
 
     /**
-     * Send WhatsApp order confirmation message to client
+     * Send order confirmation via WhatsApp
      */
-    public function sendOrderConfirmation($order)
+    public function sendOrderConfirmationTemplate($order)
     {
-        // Check if WhatsApp is enabled
         if (!env('WHATSAPP_ENABLED', true)) {
-            Log::info('WhatsApp notifications are disabled', ['order_id' => $order->id]);
+            Log::info('WhatsApp is disabled in configuration');
             return false;
         }
 
@@ -39,8 +39,19 @@ class WhatsAppService
                 return false;
             }
 
-            // Create confirmation message
-            $message = $this->buildOrderConfirmationMessage($order);
+            // Format order details
+            $clientName = trim($order->client_name . ' ' . $order->client_lastname);
+            $orderDetails = $this->formatOrderDetailsForMessage($order);
+
+            // Create the complete message
+            $message = "🛒 *Order Confirmation*\n\n";
+            $message .= "Hello *{$clientName}*!\n\n";
+            $message .= "Your order has been received:\n\n";
+            $message .= $orderDetails;
+            $message .= "\n\nPlease reply with:\n";
+            $message .= "✅ Type *CONFIRM* to confirm your order\n";
+            $message .= "❌ Type *CANCEL* to cancel your order\n\n";
+            $message .= "Thank you for shopping with us! 🛍️";
 
             // Send WhatsApp message
             $response = Http::withHeaders([
@@ -59,24 +70,24 @@ class WhatsAppService
                 Log::info('WhatsApp order confirmation sent successfully', [
                     'order_id' => $order->id,
                     'phone' => $clientPhone,
-                    'message_id' => $response->json()['messages'][0]['id'] ?? null
+                    'message_id' => $response->json('messages.0.id') ?? 'unknown'
                 ]);
                 return true;
             } else {
-                Log::error('WhatsApp API error', [
+                $errorData = $response->json();
+                Log::error('WhatsApp message API error', [
                     'order_id' => $order->id,
                     'phone' => $clientPhone,
                     'status' => $response->status(),
-                    'response' => $response->json()
+                    'response' => $errorData
                 ]);
                 return false;
             }
 
         } catch (\Exception $e) {
-            Log::error('WhatsApp service error', [
+            Log::error('WhatsApp service exception', [
                 'order_id' => $order->id,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'error' => $e->getMessage()
             ]);
             return false;
         }
@@ -103,44 +114,27 @@ class WhatsAppService
             $phone = '212' . $phone;
         }
 
-        // Validate phone number length (should be 12-15 digits with country code)
-        if (strlen($phone) < 10 || strlen($phone) > 15) {
-            return null;
-        }
-
         return $phone;
     }
 
     /**
-     * Build order confirmation message
+     * Format order details for WhatsApp message
      */
-    private function buildOrderConfirmationMessage($order)
+    private function formatOrderDetailsForMessage($order)
     {
-        $orderNumber = '#ORD-' . str_pad($order->id, 4, '0', STR_PAD_LEFT);
-        $customerName = $order->client_name . ' ' . $order->client_lastname;
-        $productName = $order->product ? $order->product->name : 'Produit';
-        $total = $order->product ? number_format($order->product->price, 2) . ' DH' : 'N/A';
-        $paymentMethod = $order->payment_method === 'cod' ? 'Paiement à la livraison' : 'Paiement en ligne';
-
-        $message = "🛒 *Confirmation de commande*\n\n";
-        $message .= "Bonjour *{$customerName}*,\n\n";
-        $message .= "Votre commande a été confirmée avec succès !\n\n";
-        $message .= "📋 *Détails de la commande:*\n";
-        $message .= "• N° commande: *{$orderNumber}*\n";
-        $message .= "• Produit: {$productName}\n";
-        $message .= "• Total: *{$total}*\n";
-        $message .= "• Mode de paiement: {$paymentMethod}\n\n";
+        $details = "📋 *Order Details:*\n";
+        $details .= "• Order #" . $order->id . "\n";
         
-        if ($order->payment_method === 'cod') {
-            $message .= "💰 Vous paierez à la livraison.\n\n";
-        } else {
-            $message .= "✅ Votre paiement a été traité avec succès.\n\n";
+        if ($order->products_id && $order->product) {
+            $details .= "• Product: " . $order->product->name . "\n";
+            $details .= "• Quantity: " . ($order->quantity ?? 1) . "\n";
+            $details .= "• Price: " . number_format($order->product->current_price ?? $order->product->price ?? 0, 2) . " DH\n";
         }
-
-        $message .= "📞 Pour toute question, contactez-nous.\n\n";
-        $message .= "Merci pour votre confiance ! 🙏";
-
-        return $message;
+        
+        $details .= "• Status: " . ucfirst($order->status ?? 'pending') . "\n";
+        $details .= "• Payment: " . ($order->method_payment ?? 'Not specified');
+        
+        return $details;
     }
 
     /**
@@ -170,7 +164,7 @@ class WhatsAppService
             if ($response->successful()) {
                 return [
                     'success' => true,
-                    'message_id' => $response->json()['messages'][0]['id'] ?? null,
+                    'message_id' => $response->json('messages.0.id') ?? null,
                     'phone' => $formattedPhone
                 ];
             } else {
@@ -186,6 +180,138 @@ class WhatsAppService
                 'success' => false,
                 'error' => $e->getMessage()
             ];
+        }
+    }
+
+    /**
+     * Handle WhatsApp webhook for message responses
+     */
+    public function handleWebhook($payload)
+    {
+        try {
+            Log::info('WhatsApp webhook received', ['payload' => $payload]);
+            
+            if (!isset($payload['entry'][0]['changes'][0]['value']['messages'][0])) {
+                return false;
+            }
+
+            $message = $payload['entry'][0]['changes'][0]['value']['messages'][0];
+            $messageText = strtoupper(trim($message['text']['body'] ?? ''));
+            $senderPhone = $message['from'] ?? '';
+            
+            if (strpos($messageText, 'CONFIRM') !== false) {
+                return $this->handleOrderConfirmation($senderPhone);
+            } elseif (strpos($messageText, 'CANCEL') !== false) {
+                return $this->handleOrderCancellation($senderPhone);
+            }
+            
+            return false;
+        } catch (\Exception $e) {
+            Log::error('WhatsApp webhook error', ['error' => $e->getMessage()]);
+            return false;
+        }
+    }
+
+    /**
+     * Handle order confirmation via WhatsApp
+     */
+    private function handleOrderConfirmation($senderPhone)
+    {
+        try {
+            $order = Order::where('phone', 'LIKE', '%' . substr($senderPhone, -9))
+                          ->where('status', 'new')
+                          ->orderBy('created_at', 'desc')
+                          ->first();
+            
+            if (!$order) {
+                return false;
+            }
+            
+            $order->status = 'processing';
+            $order->save();
+            
+            Log::info('Order confirmed via WhatsApp', [
+                'order_id' => $order->id,
+                'phone' => $senderPhone
+            ]);
+            
+            $this->sendStatusUpdateConfirmation($order, 'confirmed');
+            return true;
+        } catch (\Exception $e) {
+            Log::error('Error handling order confirmation', [
+                'phone' => $senderPhone,
+                'error' => $e->getMessage()
+            ]);
+            return false;
+        }
+    }
+
+    /**
+     * Handle order cancellation via WhatsApp
+     */
+    private function handleOrderCancellation($senderPhone)
+    {
+        try {
+            $order = Order::where('phone', 'LIKE', '%' . substr($senderPhone, -9))
+                          ->where('status', 'new')
+                          ->orderBy('created_at', 'desc')
+                          ->first();
+            
+            if (!$order) {
+                return false;
+            }
+            
+            $order->status = 'cancelled';
+            $order->save();
+            
+            Log::info('Order cancelled via WhatsApp', [
+                'order_id' => $order->id,
+                'phone' => $senderPhone
+            ]);
+            
+            $this->sendStatusUpdateConfirmation($order, 'cancelled');
+            return true;
+        } catch (\Exception $e) {
+            Log::error('Error handling order cancellation', [
+                'phone' => $senderPhone,
+                'error' => $e->getMessage()
+            ]);
+            return false;
+        }
+    }
+
+    /**
+     * Send status update confirmation to client
+     */
+    private function sendStatusUpdateConfirmation(Order $order, $status)
+    {
+        try {
+            $phoneNumber = $this->formatPhoneNumber($order->phone);
+            
+            if ($status === 'confirmed') {
+                $message = "✅ *Order Confirmed!*\n\n";
+                $message .= "Thank you! Your order #" . $order->id . " has been confirmed and is now being processed.\n\n";
+                $message .= "We will contact you soon for delivery details. 📦";
+            } else {
+                $message = "❌ *Order Cancelled*\n\n";
+                $message .= "Your order #" . $order->id . " has been cancelled as requested.\n\n";
+                $message .= "Thank you for your time. Feel free to place a new order anytime! 🛍️";
+            }
+
+            Http::withHeaders([
+                'Authorization' => 'Bearer ' . $this->accessToken,
+                'Content-Type' => 'application/json',
+            ])->post($this->endpoint, [
+                'messaging_product' => 'whatsapp',
+                'to' => $phoneNumber,
+                'type' => 'text',
+                'text' => [
+                    'body' => $message
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Error sending status confirmation', ['error' => $e->getMessage()]);
         }
     }
 }

@@ -64,7 +64,7 @@ class ProductController extends Controller
         }
 
         $product = Product::create($validated);
-        return response()->json($product->load('category'), 201);
+        return response()->json($product->load('category'), 201);     
     }
 
     public function show(Product $product)

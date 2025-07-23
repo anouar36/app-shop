@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete Admin Login Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .demo-creds {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .step {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-left: 4px solid #007bff;
+            border-radius: 0 5px 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Complete Admin Login Test</h1>
+        <p>This test simulates the exact same login flow as the Next.js frontend.</p>
+        
+        <div class="demo-creds">
+            <strong>Demo Credentials:</strong><br>
+            Email: admin@shop.com<br>
+            Password: admin123
+        </div>
+        
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="email">Email:</label>
+                <input type="email" id="email" value="admin@shop.com" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Password:</label>
+                <input type="password" id="password" value="admin123" required>
+            </div>
+            
+            <button type="submit" id="loginBtn">Login to Admin Dashboard</button>
+        </form>
+        
+        <div class="step">
+            <strong>Step 1:</strong> Click "Login to Admin Dashboard" to test authentication
+        </div>
+        <div class="step">
+            <strong>Step 2:</strong> If successful, you'll see token and user data
+        </div>
+        <div class="step">
+            <strong>Step 3:</strong> Click "Test Dashboard Access" to verify the token works
+        </div>
+        
+        <button id="testDashboard" style="display: none; background-color: #28a745;">Test Dashboard Access</button>
+        <button id="testRedirect" style="display: none; background-color: #17a2b8;">Open Admin Dashboard</button>
+        
+        <div id="result" class="result" style="display: none;"></div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://127.0.0.1:8001/api';
+        let authToken = null;
+        
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            await performLogin();
+        });
+        
+        document.getElementById('testDashboard').addEventListener('click', async function() {
+            await testDashboardAccess();
+        });
+        
+        document.getElementById('testRedirect').addEventListener('click', function() {
+            window.open('http://localhost:3003/admin/dashboard', '_blank');
+        });
+        
+        async function performLogin() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const resultDiv = document.getElementById('result');
+            const loginBtn = document.getElementById('loginBtn');
+            
+            loginBtn.disabled = true;
+            loginBtn.textContent = 'Logging in...';
+            
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result info';
+            resultDiv.innerHTML = '🔄 Testing admin login...\n\nAPI Endpoint: ' + API_BASE_URL + '/admin/login';
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/admin/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: email,
+                        password: password
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    authToken = data.token;
+                    localStorage.setItem('admin_token', data.token);
+                    localStorage.setItem('admin_user', JSON.stringify(data.user));
+                    
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `✅ LOGIN SUCCESSFUL!\n\n` +
+                        `Status: ${response.status}\n` +
+                        `Token: ${data.token}\n\n` +
+                        `User Data:\n` +
+                        `- ID: ${data.user.id}\n` +
+                        `- Name: ${data.user.name} ${data.user.last_name}\n` +
+                        `- Email: ${data.user.email}\n` +
+                        `- Role: ${data.user.role}\n\n` +
+                        `✅ Token saved to localStorage\n` +
+                        `✅ User data saved to localStorage`;
+                    
+                    document.getElementById('testDashboard').style.display = 'block';
+                    document.getElementById('testRedirect').style.display = 'block';
+                    
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = `❌ LOGIN FAILED!\n\n` +
+                        `Status: ${response.status}\n` +
+                        `Message: ${data.message || 'Unknown error'}\n\n` +
+                        `Response Data:\n${JSON.stringify(data, null, 2)}`;
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `❌ NETWORK ERROR!\n\n` +
+                    `Error: ${error.message}\n\n` +
+                    `Possible causes:\n` +
+                    `• Backend server not running (should be on http://127.0.0.1:8001)\n` +
+                    `• CORS configuration issues\n` +
+                    `• Network connectivity problems\n\n` +
+                    `Check if backend server is running:\n` +
+                    `cd c:\\xampp\\htdocs\\shop\\shop-backend\n` +
+                    `php artisan serve --host=0.0.0.0 --port=8001`;
+            }
+            
+            loginBtn.disabled = false;
+            loginBtn.textContent = 'Login to Admin Dashboard';
+        }
+        
+        async function testDashboardAccess() {
+            if (!authToken) {
+                alert('No auth token available. Please login first.');
+                return;
+            }
+            
+            const resultDiv = document.getElementById('result');
+            resultDiv.className = 'result info';
+            resultDiv.innerHTML = '🔄 Testing dashboard access with token...';
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/admin/dashboard-stats`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `✅ DASHBOARD ACCESS SUCCESSFUL!\n\n` +
+                        `Status: ${response.status}\n` +
+                        `Dashboard Data:\n${JSON.stringify(data, null, 2)}`;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = `❌ DASHBOARD ACCESS FAILED!\n\n` +
+                        `Status: ${response.status}\n` +
+                        `Message: ${data.message || 'Unknown error'}\n\n` +
+                        `This might indicate a token validation issue.`;
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `❌ DASHBOARD ACCESS ERROR!\n\n` +
+                    `Error: ${error.message}`;
+            }
+        }
+        
+        // Check if already logged in
+        window.addEventListener('load', function() {
+            const savedToken = localStorage.getItem('admin_token');
+            const savedUser = localStorage.getItem('admin_user');
+            
+            if (savedToken && savedUser) {
+                authToken = savedToken;
+                const user = JSON.parse(savedUser);
+                
+                const resultDiv = document.getElementById('result');
+                resultDiv.style.display = 'block';
+                resultDiv.className = 'result info';
+                resultDiv.innerHTML = `ℹ️ EXISTING SESSION FOUND\n\n` +
+                    `Token: ${savedToken}\n` +
+                    `User: ${user.name} (${user.email})\n\n` +
+                    `You can test dashboard access or login again.`;
+                
+                document.getElementById('testDashboard').style.display = 'block';
+                document.getElementById('testRedirect').style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>

@@ -13,17 +13,19 @@
         |
         | To learn more: https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS
         |
-        */
-
-        'paths' => ['api/*', 'sanctum/csrf-cookie'],
+        */        'paths' => ['api/*', 'sanctum/csrf-cookie'],
 
         'allowed_methods' => ['*'],
 
         'allowed_origins' => [
             'http://localhost:3000',
             'http://localhost:3001', 
-            'http://127.0.0.1:3000',
+            'http://localhost:3002',  // Added for current Next.js port
+            'http://localhost:3003',
+            'http://127.0.0.1:3000',      
             'http://127.0.0.1:3001',
+            'http://127.0.0.1:3002',  // Added for current Next.js port
+            'http://127.0.0.1:3003',
             'http://localhost:8000',
             'http://127.0.0.1:8000',
             'http://localhost:8001',

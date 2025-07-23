@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚡ Test Real-Time WhatsApp System</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .container {
+            background: white;
+            color: #333;
+            border-radius: 15px;
+            padding: 30px;
+            margin: 20px 0;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .result {
+            margin: 15px 0;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            min-height: 50px;
+        }
+        .success { 
+            background: #d4edda; 
+            color: #155724; 
+        }
+        .error { 
+            background: #f8d7da; 
+            color: #721c24; 
+        }
+        .realtime { 
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24); 
+            color: white; 
+            font-weight: bold;
+        }
+        button {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⚡ Real-Time WhatsApp Test</h1>
+        <p>Test the instant WhatsApp confirmation system</p>
+        
+        <button onclick="testRealTimeSystem()">⚡ TEST REAL-TIME PROCESSING</button>
+        <button onclick="checkOrderStatus()">📊 CHECK ORDER #32 STATUS</button>
+        
+        <div id="result" class="result"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8001/api';
+        
+        async function testRealTimeSystem() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.textContent = '⚡ Testing real-time WhatsApp system...';
+            
+            try {
+                const response = await fetch(`${API_BASE}/test-whatsapp-realtime`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    resultDiv.className = 'result realtime';
+                    resultDiv.textContent = `⚡ REAL-TIME TEST COMPLETED!
+
+🚀 Result: ${data.message}
+📊 Orders Processed: ${data.processed_count}
+⚡ Type: ${data.type}
+⏰ Completed At: ${data.timestamp}
+
+${data.processed_count > 0 ? 
+'🎉 Orders instantly updated to "processing" status!' : 
+'ℹ️ No pending confirmations found.'}`;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent = '❌ Real-time test failed: ' + response.statusText;
+                }
+                
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `❌ Error: ${error.message}`;
+            }
+        }
+        
+        async function checkOrderStatus() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.textContent = '📊 Checking Order #32 status...';
+            
+            try {
+                const response = await fetch(`${API_BASE}/admin/orders/32`);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const order = data.data;
+                    
+                    resultDiv.className = 'result success';
+                    resultDiv.textContent = `📊 ORDER #32 STATUS:
+
+👤 Customer: ${order.client_name} ${order.client_lastname}
+📱 Phone: ${order.phone}
+📧 Email: ${order.email}
+📊 Status: ${order.status.toUpperCase()}
+💰 Payment: ${order.payment_method}
+⏰ Created: ${order.created_at}
+⏰ Updated: ${order.updated_at}
+
+${order.status === 'processing' ? 
+'🎉 Order has been processed by real-time system!' : 
+'⏳ Order is still pending confirmation...'}`;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent = '❌ Failed to fetch order: ' + response.statusText;
+                }
+                
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `❌ Error: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>

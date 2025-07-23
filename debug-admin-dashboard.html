@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard Orders Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 4px; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        button { background: #007bff; color: white; border: none; padding: 10px 20px; margin: 5px; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .danger { background: #dc3545; }
+        .danger:hover { background: #c82333; }
+        .success-btn { background: #28a745; }
+        .success-btn:hover { background: #218838; }
+        .orders-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        .orders-table th, .orders-table td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        .orders-table th { background: #f8f9fa; font-weight: bold; }
+        .orders-table tr:nth-child(even) { background: #f8f9fa; }
+        .orders-table tr:hover { background: #e8f4f8; }
+        .timestamp { font-size: 0.9em; color: #666; }
+        .order-id { font-weight: bold; color: #007bff; }
+        .status-badge { padding: 4px 8px; border-radius: 12px; font-size: 0.8em; font-weight: bold; text-transform: uppercase; }
+        .status-new { background: #e3f2fd; color: #1976d2; }
+        .status-processing { background: #fff3e0; color: #f57c00; }
+        .status-completed { background: #e8f5e8; color: #388e3c; }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .stat-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 8px; text-align: center; }
+        .stat-number { font-size: 2em; font-weight: bold; margin-bottom: 5px; }
+        .stat-label { font-size: 0.9em; opacity: 0.9; }
+        .refresh-section { background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #007bff; }
+        #logs { background: #f8f9fa; padding: 15px; border-radius: 4px; max-height: 300px; overflow-y: auto; margin-top: 20px; font-family: monospace; }
+        .log { margin: 5px 0; padding: 5px; border-radius: 2px; }
+        .log.success { background: #d4edda; color: #155724; }
+        .log.error { background: #f8d7da; color: #721c24; }
+        .log.info { background: #d1ecf1; color: #0c5460; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 Admin Dashboard Orders Debug Tool</h1>
+            <p>Test and compare real-time orders data with what the admin dashboard shows</p>
+        </div>
+
+        <div class="refresh-section">
+            <h3>📋 Quick Actions</h3>
+            <button onclick="loginAdmin()" class="success-btn">🔑 Login as Admin</button>
+            <button onclick="fetchOrders()">📊 Fetch Latest Orders</button>
+            <button onclick="clearCache()">🗑️ Clear Browser Cache</button>
+            <button onclick="forceRefresh()" class="danger">🔄 Force Refresh (Hard Reload)</button>
+        </div>
+
+        <div class="stats" id="statsContainer">
+            <div class="stat-card">
+                <div class="stat-number" id="totalOrders">--</div>
+                <div class="stat-label">Total Orders</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="todayOrders">--</div>
+                <div class="stat-label">Today's Orders</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="latestOrderId">--</div>
+                <div class="stat-label">Latest Order ID</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="lastUpdated">--</div>
+                <div class="stat-label">Last Updated</div>
+            </div>
+        </div>
+
+        <div id="orderStatus" class="status info">
+            <strong>Status:</strong> Ready to test. Click "Login as Admin" then "Fetch Latest Orders"
+        </div>
+
+        <table class="orders-table" id="ordersTable" style="display: none;">
+            <thead>
+                <tr>
+                    <th>Order ID</th>
+                    <th>Customer</th>
+                    <th>Email</th>
+                    <th>Status</th>
+                    <th>Total</th>
+                    <th>Created At</th>
+                </tr>
+            </thead>
+            <tbody id="ordersTableBody">
+            </tbody>
+        </table>
+
+        <div id="logs"></div>
+    </div>
+
+    <script>
+        let adminToken = null;
+        let currentOrders = [];
+
+        function addLog(message, type = 'info') {
+            const logs = document.getElementById('logs');
+            const logDiv = document.createElement('div');
+            logDiv.className = `log ${type}`;
+            logDiv.innerHTML = `<strong>${new Date().toLocaleTimeString()}</strong>: ${message}`;
+            logs.appendChild(logDiv);
+            logs.scrollTop = logs.scrollHeight;
+        }
+
+        async function loginAdmin() {
+            addLog('🔑 Attempting admin login...', 'info');
+            
+            try {
+                const response = await fetch('http://127.0.0.1:8001/api/admin/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: 'admin@shop.com',
+                        password: 'admin123'
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    adminToken = data.token;
+                    addLog(`✅ Login successful! Token: ${data.token.substring(0, 20)}...`, 'success');
+                    addLog(`👤 Logged in as: ${data.user.name} ${data.user.last_name}`, 'info');
+                    
+                    document.getElementById('orderStatus').className = 'status success';
+                    document.getElementById('orderStatus').innerHTML = '<strong>✅ Admin authenticated!</strong> Ready to fetch orders.';
+                } else {
+                    const errorData = await response.json();
+                    addLog(`❌ Login failed: ${errorData.message}`, 'error');
+                    document.getElementById('orderStatus').className = 'status error';
+                    document.getElementById('orderStatus').innerHTML = '<strong>❌ Login failed!</strong> Check credentials.';
+                }
+            } catch (error) {
+                addLog(`❌ Login error: ${error.message}`, 'error');
+                document.getElementById('orderStatus').className = 'status error';
+                document.getElementById('orderStatus').innerHTML = '<strong>❌ Connection error!</strong> Backend not reachable.';
+            }
+        }
+
+        async function fetchOrders() {
+            if (!adminToken) {
+                addLog('❌ Please login first!', 'error');
+                return;
+            }
+
+            addLog('📊 Fetching latest orders from API...', 'info');
+
+            try {
+                // Use the exact same API call as the admin dashboard
+                const response = await fetch('http://127.0.0.1:8001/api/admin/orders?page=1&per_page=15&status=all&search=&sort_by=created_at&sort_order=desc', {
+                    headers: {
+                        'Authorization': `Bearer ${adminToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    currentOrders = data.data;
+                    
+                    addLog(`✅ Successfully fetched ${data.data.length} orders`, 'success');
+                    addLog(`📊 Total orders in system: ${data.pagination.total}`, 'info');
+                    addLog(`📄 Page ${data.pagination.current_page} of ${data.pagination.last_page}`, 'info');
+                    
+                    // Update stats
+                    document.getElementById('totalOrders').textContent = data.pagination.total;
+                    document.getElementById('latestOrderId').textContent = data.data.length > 0 ? `#${data.data[0].id}` : 'None';
+                    document.getElementById('lastUpdated').textContent = new Date().toLocaleTimeString();
+                    
+                    // Count today's orders
+                    const today = new Date().toISOString().split('T')[0];
+                    const todayOrdersCount = data.data.filter(order => 
+                        order.created_at.startsWith(today)
+                    ).length;
+                    document.getElementById('todayOrders').textContent = todayOrdersCount;
+                    
+                    // Display orders table
+                    displayOrdersTable(data.data);
+                    
+                    document.getElementById('orderStatus').className = 'status success';
+                    document.getElementById('orderStatus').innerHTML = 
+                        `<strong>✅ Orders loaded!</strong> Found ${data.data.length} orders on current page (${data.pagination.total} total). Latest order: #${data.data[0]?.id || 'None'}`;
+                        
+                } else if (response.status === 401) {
+                    addLog('❌ Unauthorized. Token may be expired.', 'error');
+                    document.getElementById('orderStatus').className = 'status error';
+                    document.getElementById('orderStatus').innerHTML = '<strong>❌ Unauthorized!</strong> Please login again.';
+                } else {
+                    const errorText = await response.text();
+                    addLog(`❌ API error: ${response.status} - ${errorText}`, 'error');
+                    document.getElementById('orderStatus').className = 'status error';
+                    document.getElementById('orderStatus').innerHTML = `<strong>❌ API Error!</strong> Status: ${response.status}`;
+                }
+            } catch (error) {
+                addLog(`❌ Network error: ${error.message}`, 'error');
+                document.getElementById('orderStatus').className = 'status error';
+                document.getElementById('orderStatus').innerHTML = '<strong>❌ Network Error!</strong> Cannot reach backend.';
+            }
+        }
+
+        function displayOrdersTable(orders) {
+            const tableBody = document.getElementById('ordersTableBody');
+            const table = document.getElementById('ordersTable');
+            
+            if (orders.length === 0) {
+                table.style.display = 'none';
+                return;
+            }
+            
+            tableBody.innerHTML = '';
+            
+            orders.forEach(order => {
+                const row = document.createElement('tr');
+                
+                const statusClass = `status-${order.status.toLowerCase()}`;
+                
+                row.innerHTML = `
+                    <td><span class="order-id">#${order.id}</span></td>
+                    <td>${order.customer}</td>
+                    <td>${order.customer_email}</td>
+                    <td><span class="status-badge ${statusClass}">${order.status}</span></td>
+                    <td>${order.total}</td>
+                    <td>
+                        <div>${order.created_at}</div>
+                        <div class="timestamp">${new Date(order.created_at).toLocaleString()}</div>
+                    </td>
+                `;
+                
+                tableBody.appendChild(row);
+            });
+            
+            table.style.display = 'table';
+        }
+
+        function clearCache() {
+            addLog('🗑️ Clearing browser cache...', 'info');
+            
+            // Clear localStorage
+            localStorage.clear();
+            addLog('✅ localStorage cleared', 'success');
+            
+            // Clear sessionStorage
+            sessionStorage.clear();
+            addLog('✅ sessionStorage cleared', 'success');
+            
+            // Note: We can't programmatically clear browser cache, but we can inform the user
+            addLog('ℹ️ To clear browser cache completely, press Ctrl+Shift+R (Windows) or Cmd+Shift+R (Mac)', 'info');
+            
+            document.getElementById('orderStatus').className = 'status warning';
+            document.getElementById('orderStatus').innerHTML = '<strong>⚠️ Cache cleared!</strong> Please refresh your admin dashboard manually.';
+        }
+
+        function forceRefresh() {
+            addLog('🔄 Performing hard refresh...', 'info');
+            
+            // Clear cache and reload
+            if ('caches' in window) {
+                caches.keys().then(names => {
+                    names.forEach(name => {
+                        caches.delete(name);
+                    });
+                });
+            }
+            
+            // Force reload without cache
+            window.location.reload(true);
+        }
+
+        // Auto-refresh every 30 seconds if logged in
+        setInterval(() => {
+            if (adminToken) {
+                addLog('🔄 Auto-refreshing orders...', 'info');
+                fetchOrders();
+            }
+        }, 30000);
+
+        // Load on page ready
+        addLog('🚀 Debug tool loaded. Ready to test!', 'info');
+    </script>
+</body>
+</html>
